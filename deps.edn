@@ -1,0 +1,6 @@
+{:deps {generateme/fastmath {:mvn/version "2.1.8"}
+        org.clojure/clojure {:mvn/version "1.11.1"}}
+
+ :aliases {:clerk {:extra-deps {io.github.nextjournal/clerk {:mvn/version "0.12.707"}}
+                   :extra-paths ["examples"]}
+           :test {:extra-paths ["test"]}}}
