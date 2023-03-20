@@ -113,12 +113,27 @@
      {:data (range (count probs))
       :probabilities probs})))
 
+(def gamma
+  (fastmath-distribution
+   :gamma
+   (fn [shape scale]
+     {:shape shape
+      :scale scale})))
+
 (def normal
   (fastmath-distribution
    :normal
    (fn [mu std]
      {:mu mu
       :sd std})))
+
+(def uniform
+  ;; FIXME Docstring.
+  (fastmath-distribution
+   :uniform-real
+   (fn [low high]
+     {:lower low
+      :upper high})))
 
 (def uniform-discrete
   "Sample an integer from the uniform distribution on the set `{low low+1 ...
