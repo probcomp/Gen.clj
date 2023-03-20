@@ -332,14 +332,11 @@
 
 (def foo
   (gen [prob-a]
-    (let [val (atom true)]
-      (when (gen/trace :a (dist/bernoulli prob-a))
-        (swap! val #(and (gen/trace :b (dist/bernoulli 0.6))
-                         %)))
-      (let [prob-c (if @val 0.9 0.2)]
-        (swap! val #(and (gen/trace :c (dist/bernoulli prob-c))
-                         %)))
-      @val)))
+    (let [a-b (or (not (gen/trace :a (dist/bernoulli prob-a)))
+                  (gen/trace :b (dist/bernoulli 0.6)))
+          prob-c (if a-b 0.9 0.2)]
+      (and (gen/trace :c (dist/bernoulli prob-c))
+           a-b))))
 
 (trace/choices (gf/simulate foo [0.3]))
 
