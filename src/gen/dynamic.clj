@@ -36,10 +36,11 @@
   gf/Simulate
   (simulate [gf args]
     (let [trace (atom (dynamic.trace/trace gf args))]
-      (binding [dynamic.trace/*trace* (fn [k gf args]
-                                        (let [subtrace (gf/simulate gf args)]
-                                          (swap! trace dynamic.trace/assoc-subtrace k subtrace)
-                                          (trace/retval subtrace)))]
+      (binding [dynamic.trace/*trace*
+                (fn [k gf args]
+                  (let [subtrace (gf/simulate gf args)]
+                    (swap! trace dynamic.trace/assoc-subtrace k subtrace)
+                    (trace/retval subtrace)))]
         (let [retval (apply gf args)]
           (swap! trace dynamic.trace/set-retval! retval)
           @trace))))
