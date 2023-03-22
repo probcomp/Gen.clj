@@ -51,13 +51,17 @@
   (generate [gf args constraints]
     (let [state (atom {:trace (dynamic.trace/trace gf args)
                        :weight 0})]
-      (binding [dynamic.trace/*trace* (fn [k gf args]
-                                        (let [constraints (get (choice-map/submaps constraints)
-                                                               k)
-                                              {subtrace :trace weight :weight} (gf/generate gf args constraints)]
-                                          (swap! state update :trace dynamic.trace/assoc-subtrace k subtrace)
-                                          (swap! state update :weight + weight)
-                                          (trace/retval subtrace)))]
+      (binding [dynamic.trace/*trace*
+                (fn [k gf args]
+                  (let [{subtrace :trace
+                         weight :weight}
+                        (if-let [constraints (get (choice-map/submaps constraints)
+                                                  k)]
+                          (gf/generate gf args constraints)
+                          (gf/generate gf args))]
+                    (swap! state update :trace dynamic.trace/assoc-subtrace k subtrace)
+                    (swap! state update :weight + weight)
+                    (trace/retval subtrace)))]
         (let [retval (apply gf args)
               trace (:trace @state)]
           (dynamic.trace/set-retval! trace retval)
