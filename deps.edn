@@ -1,7 +1,7 @@
 {:deps {generateme/fastmath {:mvn/version "2.1.9-SNAPSHOT"}
         org.clojure/clojure {:mvn/version "1.11.1"}}
 
- :aliases {:clerk {:extra-deps {io.github.nextjournal/clerk {:mvn/version "0.12.707"}}
+ :aliases {:clerk {:extra-deps {io.github.nextjournal/clerk {:mvn/version "0.13.842"}}
                    :extra-paths ["examples"]}
            :test {:extra-paths ["test"]}
            :clj-test {:extra-deps {io.github.cognitect-labs/test-runner {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
