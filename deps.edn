@@ -1,4 +1,5 @@
 {:deps {generateme/fastmath {:mvn/version "2.1.9-SNAPSHOT"}
+        org.apache.commons/commons-math3 {:mvn/version "3.6.1"}
         org.clojure/clojure {:mvn/version "1.11.1"}}
 
  :aliases {:clerk {:extra-deps {io.github.nextjournal/clerk {:mvn/version "0.13.842"}}
