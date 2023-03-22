@@ -66,19 +66,20 @@
                              retval (fastmath-sample->sample fastmath-sample)
                              score (random/log-likelihood fastmath-dist [fastmath-sample])]
                          (trace gf args retval score)))
-        `gf/generate (fn [gf args constraints]
-                       (if (dynamic.choice-map/choice? constraints)
-                         (let [retval (choice-map/value constraints)
-                               config (apply args->config args)
-                               fastmath-dist (random/distribution k config)
-                               fastmath-sample (sample->fastmath-sample retval)
-                               weight (random/log-likelihood fastmath-dist [fastmath-sample])
-                               trace (trace gf args retval weight)]
-                           {:weight weight
-                            :trace trace})
-                         (let [trace (gf/simulate gf args)]
-                           {:weight 0
-                            :trace trace})))}))))
+        `gf/generate (fn
+                       ([gf args]
+                        {:weight 0
+                         :trace (gf/simulate gf args)})
+                       ([gf args constraints]
+                        (assert (dynamic.choice-map/choice? constraints))
+                        (let [retval (choice-map/value constraints)
+                              config (apply args->config args)
+                              fastmath-dist (random/distribution k config)
+                              fastmath-sample (sample->fastmath-sample retval)
+                              weight (random/log-likelihood fastmath-dist [fastmath-sample])
+                              trace (trace gf args retval weight)]
+                          {:weight weight
+                           :trace trace})))}))))
 
 (def bernoulli
   "Samples a Bool value which is true with given probability."
