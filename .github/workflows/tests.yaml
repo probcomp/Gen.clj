@@ -31,7 +31,7 @@ jobs:
           key: gitlibs-${{ hashFiles('deps.edn') }}
 
       - name: Prepare dependencies
-        run: clojure -P -M:test
+        run: clojure -P -M:test:clj-test
 
       - name: Run Clojure tests
-        run: clojure -X:test
+        run: clojure -X:test:clj-test
