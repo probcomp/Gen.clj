@@ -1,20 +1,35 @@
 (ns gen.dynamic.trace
   (:require [clojure.core :as core]
-            [clojure.set :as set]
-            [gen.choice-map :as choice-map]
             [gen.dynamic.choice-map :as dynamic.choice-map]
-            [gen.generative-function :as gf]
             [gen.trace :as trace]))
 
-(defn ^:dynamic *trace*
+(set! *warn-on-reflection* true)
+
+(defn no-op
+  ([gf args]
+   (apply gf args))
+  ([_k gf args]
+   (apply gf args)))
+
+(def ^:dynamic *trace*
   "Applies the generative function gf to args. Dynamically rebound by functions
   like `gf/simulate`, `gf/generate`, `trace/update`, etc."
-  [_k gf args]
-  (apply gf args))
+  no-op)
 
-(declare assoc-subtrace set-retval! trace)
+(def ^:dynamic *splice*
+  "Applies the generative function gf to args. Dynamically rebound by functions
+  like `gf/simulate`, `gf/generate`, `trace/update`, etc."
+  no-op)
 
-(deftype Trace [gf args subtraces retval score]
+(defmacro without-tracing
+  [& body]
+  `(binding [*trace* no-op
+             *splice* no-op]
+     ~@body))
+
+(declare assoc-subtrace merge-trace set-retval! trace)
+
+(deftype Trace [gf args ^clojure.lang.PersistentArrayMap subtraces retval score]
   clojure.lang.Associative
   (containsKey [_ k]
     (contains? subtraces k))
@@ -80,43 +95,7 @@
                                     +
                                     0
                                     (vals subtraces)))
-          @score)))
-
-  trace/Update
-  (update [prev-trace constraints]
-    (let [state (atom {:trace (trace gf (trace/args prev-trace))
-                       :weight 0
-                       :discard (dynamic.choice-map/choice-map)})]
-      (binding [*trace* (fn [k gf args]
-                          (let [{subtrace :trace
-                                 weight :weight
-                                 discard :discard}
-                                (if-let [prev-subtrace (get (.-subtraces prev-trace) k)]
-                                  (let [{new-subtrace :trace
-                                         new-weight :weight
-                                         discard :discard}
-                                        (trace/update prev-subtrace
-                                                      (get (choice-map/submaps constraints)
-                                                           k))]
-                                    {:trace new-subtrace
-                                     :weight new-weight
-                                     :discard discard})
-                                  (gf/generate gf args (get (choice-map/submaps constraints)
-                                                            k)))]
-                            (swap! state update :trace assoc-subtrace k subtrace)
-                            (swap! state update :weight + weight)
-                            (when discard
-                              (swap! state update :discard assoc k discard))
-                            (trace/retval subtrace)))]
-        (let [retval (apply gf (trace/args prev-trace))
-              {:keys [trace weight discard]} @state
-              unvisited (select-keys (trace/choices prev-trace)
-                                     (set/difference (set (keys (trace/choices prev-trace)))
-                                                     (set (keys (trace/choices trace)))))]
-          (set-retval! trace retval)
-          {:trace trace
-           :weight weight
-           :discard (merge discard unvisited)})))))
+          @score))))
 
 (defn trace
   [gf args]
@@ -131,9 +110,16 @@
   [t addr subt]
   (let [subtraces (.-subtraces t)]
     (when (contains? subtraces addr)
-      (throw (ex-info "Value or subtrace already present at address. The same address cannot be reused for multiple random choices." {})))
+      (throw (ex-info "Value or subtrace already present at address. The same address cannot be reused for multiple random choices."
+                      {:addr addr})))
     (Trace. (.-gf t)
             (.-args t)
             (assoc subtraces addr subt)
             (.-retval t)
             (.-score t))))
+
+(defn merge-subtraces
+  [^Trace t1 ^Trace t2]
+  (reduce-kv assoc-subtrace
+             t1
+             (.-subtraces t2)))
