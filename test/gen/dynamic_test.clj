@@ -39,8 +39,62 @@
   (is (dynamic/valid-trace-form? `(gen/trace :addr ((gen [x]) 0)))))
 
 (deftest trace-args
-  (let [n 0]
-    (is (= [n] (trace/args (gf/simulate (gen [_]) [n]))))))
+  (is (= [0] (trace/args (gf/simulate (gen [& _]) [0]))))
+  (is (= [0 1] (trace/args (gf/simulate (gen [& _]) [0 1])))))
+
+(deftest simulate-trace
+  (let [gf (gen [] (gen/trace :addr (d/bernoulli)))
+        trace (gf/simulate gf [])
+        choice-map (trace/choices trace)]
+    (is (= #{:addr} (set (keys trace))))
+    (is (= #{:addr} (set (keys choice-map))))
+    (is (boolean? (:addr trace)))
+    (is (boolean? (:addr choice-map)))))
+
+(deftest simulate-splice
+  (let [gf0 (gen [] (gen/trace :addr (d/bernoulli)))
+        gf1 (gen [] (gen/splice (gf0)))
+        trace (gf/simulate gf1 [])
+        choice-map (trace/choices trace)]
+    (is (= #{:addr} (set (keys trace))))
+    (is (= #{:addr} (set (keys choice-map))))
+    (is (boolean? (:addr trace)))
+    (is (boolean? (:addr choice-map)))))
+
+(deftest generate-trace-trace
+  (let [gf (gen [] (gen/trace :addr (d/bernoulli)))
+        trace (:trace (gf/generate gf []))
+        choice-map (trace/choices trace)]
+    (is (= #{:addr} (set (keys trace))))
+    (is (= #{:addr} (set (keys choice-map))))
+    (is (boolean? (:addr trace)))
+    (is (boolean? (:addr choice-map)))))
+
+(deftest generate-splice-trace
+  (let [gf0 (gen [] (gen/trace :addr (d/bernoulli)))
+        gf1 (gen [] (gen/splice (gf0)))
+        trace (:trace (gf/generate gf1 []))
+        choice-map (trace/choices trace)]
+    (is (= #{:addr} (set (keys trace))))
+    (is (= #{:addr} (set (keys choice-map))))
+    (is (boolean? (:addr trace)))
+    (is (boolean? (:addr choice-map)))))
+
+(deftest generate-call-trace
+  (let [gf0 (gen [] (gen/trace :addr (d/bernoulli)))
+        gf1 (gen [] (gf0))
+        trace (:trace (gf/generate gf1 []))
+        choice-map (trace/choices trace)]
+    (is (empty? trace))
+    (is (empty? choice-map))))
+
+(deftest generate-call-splice
+  (let [gf0 (gen [] (gen/splice (d/bernoulli)))
+        gf1 (gen [] (gf0))
+        trace (:trace (gf/generate gf1 []))
+        choice-map (trace/choices trace)]
+    (is (empty? trace))
+    (is (empty? choice-map))))
 
 (deftest score
   (is (= 0.5 (math/exp (trace/score (gf/simulate d/bernoulli [0.5])))))
