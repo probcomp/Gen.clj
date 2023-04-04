@@ -10,6 +10,8 @@
             [gen.trace :as trace])
   (:import [gen.dynamic.trace Trace]))
 
+(set! *warn-on-reflection* true)
+
 (defrecord DynamicDSLFunction [^clojure.lang.IFn clojure-fn]
   clojure.lang.IFn
   (invoke [_] (dynamic.trace/without-tracing (clojure-fn)))

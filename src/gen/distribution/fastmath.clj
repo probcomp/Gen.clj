@@ -7,6 +7,8 @@
             [gen.generative-function :as gf]
             [gen.trace :as trace]))
 
+(set! *warn-on-reflection* true)
+
 ;; https://generateme.github.io/fastmath/fastmath.random.html#var-distribution
 ;; https://www.gen.dev/docs/stable/ref/distributions/#Probability-Distributions-1
 
