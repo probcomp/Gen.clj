@@ -147,6 +147,3 @@
 (defn choice-map?
   [x]
   (instance? ChoiceMap x))
-
-(set! *data-readers* (assoc *data-readers* 'gen/choice choice))
-(set! *data-readers* (assoc *data-readers* 'gen/choice-map choice-map))
