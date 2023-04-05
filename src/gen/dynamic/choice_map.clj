@@ -33,7 +33,7 @@
     (choice-map/value x)
     x))
 
-(deftype ChoiceMap [m]
+(deftype ChoiceMap [^clojure.lang.IPersistentMap m]
   clojure.lang.Associative
   (containsKey [_ k]
     (contains? m k))
@@ -74,7 +74,7 @@
     (ChoiceMap. {}))
   (equiv [_ o]
     (and (instance? ChoiceMap o)
-         (= m (.-m o))))
+         (= m (.-m ^ChoiceMap o))))
 
   clojure.lang.IPersistentMap
   (assoc [_ k v]
@@ -104,7 +104,7 @@
     m))
 
 
-(defmethod print-method ChoiceMap [cm ^java.io.Writer w]
+(defmethod print-method ChoiceMap [^ChoiceMap cm ^java.io.Writer w]
   (.write w "#gen/choice-map ")
   (let [print-inner-map (fn print-inner-map [m]
                           (.write w "{")
@@ -112,7 +112,7 @@
                             (.write w (pr-str k))
                             (.write w " ")
                             (cond (instance? ChoiceMap v)
-                                  (print-inner-map (.-m v))
+                                  (print-inner-map (.-m ^ChoiceMap v))
 
                                   (instance? Choice v)
                                   (let [choice (choice-map/value v)]
