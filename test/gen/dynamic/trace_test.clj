@@ -1,5 +1,5 @@
 (ns gen.dynamic.trace-test
-  (:refer-clojure :exclude [empty? get keys seq update vals])
+  (:refer-clojure :exclude [empty? get keys seq vals])
   (:require [clojure.core :as clojure]
             [clojure.test :refer [deftest is]]
             [gen]
