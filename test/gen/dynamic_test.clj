@@ -102,3 +102,27 @@
                              (gen/trace :addr (d/bernoulli 0.5)))
                            [])]
     (is (= 0.5 (math/exp (trace/score trace))))))
+
+(deftest update-discard-yes
+  (let [gf (gen []
+             (gen/trace :discarded (d/bernoulli 0)))]
+    (is (= #gen/choice-map {:discarded false}
+           (-> (gf/simulate gf [])
+               (trace/update #gen/choice-map {:discarded true})
+               (:discard))))))
+
+(deftest update-discard-no
+  (let [gf (gen []
+             (gen/trace :not-discarded (d/bernoulli 0)))]
+    (is (empty? (-> (gf/simulate gf [])
+                    (trace/update #gen/choice-map {:discarded true})
+                    (:discard))))))
+
+(deftest update-discard-both
+  (let [gf (gen []
+             (gen/trace :discarded (d/bernoulli 0))
+             (gen/trace :not-discarded (d/bernoulli 1)))]
+    (is (= #gen/choice-map {:discarded false}
+           (-> (gf/simulate gf [])
+               (trace/update #gen/choice-map {:discarded true})
+               (:discard))))))
