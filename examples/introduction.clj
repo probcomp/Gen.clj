@@ -494,7 +494,7 @@
 
 ;; $q(t; x, u) > 0 \Longleftrightarrow p(t; x) > 0 \land u(a) = t(a) \;\; \forall a \in dom(u) \cap dom(t)$
 
-;; where $\mbox{dom}$ stands for 'domain', and gives the set of addresses in a choice map.
+;; where $\text{dom}$ stands for 'domain', and gives the set of addresses in a choice map.
 
 ;; The specific internal proposal distribution used by `gen.dynamic/gen`
 ;; functions is based on **ancestral sampling**, which operates as follows: We
@@ -504,16 +504,17 @@
 ;; constraints for that address. If the address is not present in the
 ;; constraints, we sample the value from the distribution in the `gen/trace`
 ;; expression.  For the function `foo`, with constraints
-;; $u = \{a \mapsto \mbox{true}, c \mapsto \mbox{false}\}$,
+;; $u = \{a \mapsto \text{true}, c \mapsto \text{false}\}$,
 ;; the internal proposal distribution is:
 
 ^{::clerk/visibility {:code :hide}}
+#_
 (clerk/tex "
 \\begin{array}{l|l}
-\\mbox{Random choice map } t & q(t; x, u)\\\\
+\\text{Random choice map } t & q(t; x, u)\\\\
 \\hline
-\\{a \\mapsto \\mbox{true}, b \\mapsto \\mbox{true}, c \\mapsto \\mbox{false}\\} & 0.6\\\\
-\\{a \\mapsto \\mbox{true}, b \\mapsto \\mbox{false}, c \\mapsto \\mbox{false}\\} & 0.4
+\\{a \\mapsto \\text{true}, b \\mapsto \\text{true}, c \\mapsto \\text{false}\\} & 0.6\\\\
+\\{a \\mapsto \\text{true}, b \\mapsto \\text{false}, c \\mapsto \\text{false}\\} & 0.4
 \\end{array}
 ")
 
@@ -559,10 +560,10 @@
 
 ;; Suppose our goal is to sample `:a` and `:b` from the conditional distribution
 ;; given that we have observed `:c` is `false`. That is, we want to sample
-;; choice map $t$ with probability $0$ if $t(c) = \mbox{false}$ and otherwise
+;; choice map $t$ with probability $0$ if $t(c) = \text{false}$ and otherwise
 ;; probability:
 
-;; $$\frac{p(t; x)}{\displaystyle \sum_{t' : t'(c) = \mbox{true}} p(t'; x)}$$
+;; $$\frac{p(t; x)}{\displaystyle \sum_{t' : t'(c) = \text{true}} p(t'; x)}$$
 
 ;; In this simple case, we can compute the probability by hand (assuming `(=
 ;; prob-a 0.3)`). There are three choice maps with nonzero probability:
@@ -578,14 +579,14 @@
 ^{::clerk/visibility {:code :hide}}
 (clerk/tex "
 \\begin{array}{l|l}
-\\mbox{Random choice map } t & \\mbox{Conditional probability }\\\\
+\\text{Random choice map } t & \\text{Conditional probability }\\\\
 \\hline
-\\{a \\mapsto \\mbox{true}, b \\mapsto \\mbox{true}, c \\mapsto \\mbox{true}\\} & 0\\\\
-\\{a \\mapsto \\mbox{true}, b \\mapsto \\mbox{true}, c \\mapsto \\mbox{false}\\} & 0.0978\\\\
-\\{a \\mapsto \\mbox{true}, b \\mapsto \\mbox{false}, c \\mapsto \\mbox{true}\\} & 0\\\\
-\\{a \\mapsto \\mbox{true}, b \\mapsto \\mbox{false}, c \\mapsto \\mbox{false}\\} & 0.5217\\\\
-\\{a \\mapsto \\mbox{false}, c \\mapsto \\mbox{true}\\} &  0\\\\
-\\{a \\mapsto \\mbox{false}, c \\mapsto \\mbox{false}\\} & 0.3804
+\\{a \\mapsto \\text{true}, b \\mapsto \\text{true}, c \\mapsto \\text{true}\\} & 0\\\\
+\\{a \\mapsto \\text{true}, b \\mapsto \\text{true}, c \\mapsto \\text{false}\\} & 0.0978\\\\
+\\{a \\mapsto \\text{true}, b \\mapsto \\text{false}, c \\mapsto \\text{true}\\} & 0\\\\
+\\{a \\mapsto \\text{true}, b \\mapsto \\text{false}, c \\mapsto \\text{false}\\} & 0.5217\\\\
+\\{a \\mapsto \\text{false}, c \\mapsto \\text{true}\\} &  0\\\\
+\\{a \\mapsto \\text{false}, c \\mapsto \\text{false}\\} & 0.3804
 \\end{array}
 ")
 
