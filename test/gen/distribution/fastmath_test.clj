@@ -38,7 +38,6 @@
              (:weight)
              (math/exp)))))
 
-
 (deftest bernoulli-update-discard
   (is (nil?
        (-> (gf/generate d/bernoulli [0.3] #gen/choice true)
