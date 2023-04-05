@@ -750,12 +750,3 @@
 ;; This illustrates a useful notion of **reversibility** of the `update`
 ;; function, which will be important when using it as a primitive in
 ;; Metropolis-Hastings algorithms.
-
-^{::clerk/visibility {:code :hide :result :hide}}
-(comment
-
-  (clerk/serve! {:watch-paths ["examples"] :browse true})
-  (clerk/serve! {:browse true})
-  (clerk/show! "examples/introduction.clj")
-
-  ,)
