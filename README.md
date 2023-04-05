@@ -31,7 +31,7 @@ io.github.inferenceql/gen.clj {:git/url "https://github.com/inferenceql/gen.clj"
 
 ### Learn
 
-There are tutorials available as [Clerk](https://github.com/nextjournal/clerk/) notebooks in the [`examples`](https://) directory. 
+There are tutorials available as [Clerk](https://github.com/nextjournal/clerk/) notebooks in the `examples` directory. 
 
 To view a notebook first clone this repository, then start a Clojure REPL that includes Clerk:
 
