@@ -88,7 +88,7 @@
    (fn
      ([] {:p 0.5})
      ([p] {:p p}))
-   (fn [n]
+   (fn [^long n]
      (case n
        0 false
        1 true))

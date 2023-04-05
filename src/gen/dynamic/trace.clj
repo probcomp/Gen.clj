@@ -67,8 +67,8 @@
   java.lang.Iterable
   (iterator [this]
     (.iterator
-     ^java.lang.Iterable
-     (.seq (trace/choices this))))
+     (let [^clojure.lang.Seqable choice-map (trace/choices this)]
+       ^java.lang.Iterable (.seq choice-map))))
 
   trace/Args
   (args [_]
@@ -102,12 +102,12 @@
   (Trace. gf args {} (promise) (promise)))
 
 (defn set-retval!
-  [t retval]
+  [^Trace t retval]
   (deliver (.-retval t) retval)
   t)
 
 (defn assoc-subtrace
-  [t addr subt]
+  [^Trace t addr subt]
   (let [subtraces (.-subtraces t)]
     (when (contains? subtraces addr)
       (throw (ex-info "Value or subtrace already present at address. The same address cannot be reused for multiple random choices."
