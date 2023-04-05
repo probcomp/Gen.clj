@@ -12,12 +12,12 @@
 (set! *print-length* 10)
 
 ;; # A bottom-up introduction to Gen.clj
-;;
+
 ;; This notebook introduces some of the core concepts in Gen from the bottom-up,
 ;; and uses some mathematical notation.
-;;
+
 ;; ## 1. A simple probabilistic Clojure program
-;;
+
 ;; Consider the following Clojure code:
 
 (defn f
