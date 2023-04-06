@@ -43,7 +43,6 @@
     (when (contains? m k)
       (MapEntry/create k (auto-get-choice (get m k)))))
 
-
   clojure.lang.IFn
   (invoke [this k]
     (.valAt this k))

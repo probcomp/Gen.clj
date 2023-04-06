@@ -17,7 +17,6 @@
 ;;   Monte Carlo, variational, EM, and stochastic gradient
 ;;   techniques.
 
-
 ;; - Supervised learning of conditional inference models (e.g. supervised
 ;;   classification and regression).
 
