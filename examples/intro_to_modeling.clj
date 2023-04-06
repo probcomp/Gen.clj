@@ -401,7 +401,8 @@
 
 ;; ### 2.1 Exercise
 
-;; Write a generative function that uses the same address twice. Run it to see what happens.
+;; Write a generative function that uses the same address twice. Run it to see
+;; what happens.
 
 ;; ### 2.2 Exercise
 
@@ -425,7 +426,9 @@
 (require '[clojure.math :as math])
 math/PI
 
-;; When calling `(trace/choices (gf/simulate sine-model [xs]))`, the following choices should appear:
+;; When calling `(trace/choices (gf/simulate sine-model [xs]))`, the following
+;; choices should appear:
+
 ;; - amplitude: `(trace :amplitude)`
 ;; - period: `(trace :period)`
 ;; - phase: `(trace :phase)`
@@ -1240,7 +1243,8 @@ math/PI
     (->> (prepeatedly 12 #(do-inference changepoint-model xs-dense ys-complex 100000))
          (grid {:width 3} render-changepoint-model-trace))))
 
-;; The results show that more segments are inferred for the more complex data set.
+;; The results show that more segments are inferred for the more complex data
+;; set.
 
 ;; ### 6.1 Exercise
 
