@@ -1,16 +1,16 @@
-## Dev Dependencies
+## Dev dependencies
 
 - [node.js](https://nodejs.org/en/)
 - The [clojure command line tool](https://clojure.org/guides/install_clojure)
 - [Babashka](https://github.com/babashka/babashka#installation)
 
-## Github Pages, Docs Notebook
+## Github Pages, docs notebook
 
 The project's [Github Pages site](https://inferenceql.github.io/gen.clj) hosts
 an interactive [Clerk](https://github.com/nextjournal/clerk) notebook
 demonstrating the library's use.
 
-### Local Notebook Dev
+### Local notebook dev
 
 Start a Clojure process however you like, and run `(user/serve!)` to run the
 Clerk server. This command should open up `localhost:7777`.
@@ -21,7 +21,7 @@ Alternatively, run
 bb clerk-watch
 ```
 
-### Static Build
+### Static build
 
 To test the static build locally:
 
