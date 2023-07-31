@@ -3,6 +3,12 @@
   (:require [clojure.math :as math]
             [clojure.repl :as repl]
             [gen]
+            ;; NOTE: these distributions aren't used explicitly in this file,
+            ;; but not including this causes the static build of
+            ;; `intro_to_modeling.clj` to crash. There is some lurking bug in
+            ;; Clerk's usage of `clojure.tools.analyzer` related to [this
+            ;; PR](https://github.com/nextjournal/clerk/pull/386). Please leave
+            ;; this in until the static build passes without it!
             [gen.distribution.apache-commons-math3]
             [gen.distribution.fastmath :as dist]
             [gen.generative-function :as gf]
