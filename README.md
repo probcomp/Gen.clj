@@ -81,11 +81,11 @@ Gen.jl has grown and is maintained through the help of a core research and
 engineering team that includes [Alex Lew](http://alexlew.net/), [Tan
 Zhi-Xuan](https://github.com/ztangent/), [George
 Matheos](https://www.linkedin.com/in/george-matheos-429982160/), [McCoy
-Becker](https://femtomc.github.io/), and [Feras Saad](http://fsaad.mit.edu/), as
-well as a number of open-source contributors. Gen.jl was adapted to Clojure by
-[Zane Shelby](https://zane.io) with help from Ulrich Schaechtle. The Gen
-architecture is described in [Marco's PhD
-thesis](https://www.mct.dev/assets/mct-thesis.pdf).
+Becker](https://femtomc.github.io/), [Feras Saad](http://fsaad.mit.edu/) and
+[Sam Ritchie](https://samritchie.io), as well as a number of open-source
+contributors. Gen.jl was adapted to Clojure by [Zane Shelby](https://zane.io)
+with help from Ulrich Schaechtle. The Gen architecture is described in [Marco's
+PhD thesis](https://www.mct.dev/assets/mct-thesis.pdf).
 
 ### Citation
 
