@@ -1,10 +1,33 @@
-{:deps {generateme/fastmath {:mvn/version "2.1.9-SNAPSHOT"}
-        org.apache.commons/commons-math3 {:mvn/version "3.6.1"}
-        org.clojure/clojure {:mvn/version "1.11.1"}}
+{:paths ["src" "resources"]
 
- :aliases {:clerk {:extra-deps {io.github.nextjournal/clerk {:mvn/version "0.13.842"}}
-                   :extra-paths ["examples" "examples/src"]}
-           :test {:extra-paths ["test"]}
-           :clj-test {:extra-deps {io.github.cognitect-labs/test-runner {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
-                      :main-opts ["-m" "cognitect.test-runner"]
-                      :exec-fn cognitect.test-runner.api/test}}}
+ :deps
+ {generateme/fastmath {:mvn/version "2.1.9-SNAPSHOT"}
+  org.apache.commons/commons-math3 {:mvn/version "3.6.1"}
+  org.clojure/clojure {:mvn/version "1.11.1"}}
+
+ :aliases
+ {:nextjournal/clerk
+  {:extra-paths ["dev" "examples" "examples/src"]
+   :extra-deps {io.github.nextjournal/clerk
+                #_{:mvn/version "0.14.919"}
+                {:git/sha "fc6df7186bfea2571fff2dd790d0ad63f8d6295f"}
+                }
+   :exec-fn user/build!}
+
+  :test
+  {:extra-paths ["test"]}
+
+  ;; See https://github.com/cognitect-labs/test-runner for invocation
+  ;; instructions, or call `clojure -X:test:runner`.
+  :runner
+  {:extra-deps
+   {io.github.cognitect-labs/test-runner {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
+   :main-opts ["-m" "cognitect.test-runner"]
+   :exec-fn cognitect.test-runner.api/test
+   :exec-args ["test"]}
+
+  :build
+  {:deps
+   {io.github.clojure/tools.build {:git/tag "v0.9.4" :git/sha "76b78fe"}
+    slipset/deps-deploy {:mvn/version "0.2.0"}}
+   :ns-default build}}}

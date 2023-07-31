@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>io.github.inferenceql</groupId>
+    <artifactId>gen.clj</artifactId>
+    <name>gen.clj</name>
+    <description>A general-purpose probabilistic programming system with programmable inference.</description>
+    <url>https://github.com/InferenceQL/gen.clj</url>
+    <licenses>
+        <license>
+            <name>MIT</name>
+            <url>http://www.opensource.org/licenses/mit-license.php</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <developers>
+        <developer>
+            <name>Zane Shelby</name>
+        </developer>
+    </developers>
+    <scm>
+        <url>https://github.com/InferenceQL/gen.clj</url>
+        <connection>scm:git:git://github.com/InferenceQL/gen.clj.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/InferenceQL/gen.clj.git</developerConnection>
+    </scm>
+</project>
