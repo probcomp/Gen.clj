@@ -1,9 +1,14 @@
-^{:nextjournal.clerk/toc true
-  :nextjournal.clerk/visibility {:code :hide :result :hide}}
+^{:nextjournal.clerk/visibility {:code :hide :result :hide}}
 (ns intro-to-modeling
-  (:require [gen.choice-map]
+  {:nextjournal.clerk/toc true}
+  (:require [gen]
+            [gen.choice-map]
+            [gen.dynamic :refer [gen]]
             [gen.clerk.callout :as callout]
             [gen.clerk.viewer :as viewer]
+            [gen.distribution.apache-commons-math3 :as math3]
+            [gen.distribution.fastmath :as fastmath]
+            [gen.generative-function :as gf]
             [nextjournal.clerk :as clerk]))
 
 ;; # Tutorial: Introduction to modeling in Gen.clj
@@ -81,10 +86,11 @@
 
 ;; Gen is a library for the Clojure programming language. The library can be
 ;; required with:
-
-^{::clerk/visibility {:result :hide}}
-(require '[gen]
-         '[gen.dynamic :refer [gen]])
+;;
+;; ```clojure
+;; (require '[gen]
+;;          '[gen.dynamic :refer [gen]])
+;; ```
 
 ;; Gen programs typically consist of a combination of (i) probabilistic models
 ;; written in modeling languages and (ii) inference programs written in regular
@@ -160,8 +166,10 @@
 ;; A simple example of such an invocation is a normal distribution parametrized
 ;; with mean 0 and standard deviation 1:
 
-(require '[gen.distribution.fastmath :as fastmath]
-         '[gen.distribution.apache-commons-math3 :as math3])
+;; ```clojure
+;; (require '[gen.distribution.fastmath :as fastmath]
+;;          '[gen.distribution.apache-commons-math3 :as math3])
+;; ```
 
 (def my-variable (gen/trace :my-variable-address (fastmath/normal 0 1)))
 
@@ -275,9 +283,10 @@
 ;; generative function and obtain its trace using the [`
 ;; simulate`](https://probcomp.github.io/Gen/dev/ref/gfi/#Gen.simulate) method
 ;; from the Gen API:
-
-^{::clerk/visibility {:result :hide}}
-(require '[gen.generative-function :as gf])
+;;
+;; ```clojure
+;; (require '[gen.generative-function :as gf])
+;; ```
 
 (def trace (gf/simulate line-model [xs]))
 

@@ -1,8 +1,9 @@
-^:nextjournal.clerk/toc
 (ns introduction
+  {:nextjournal.clerk/toc true}
   (:require [clojure.math :as math]
             [clojure.repl :as repl]
             [gen]
+            [gen.distribution.apache-commons-math3]
             [gen.distribution.fastmath :as dist]
             [gen.generative-function :as gf]
             [gen.trace :as trace]
@@ -37,7 +38,9 @@
 ^{::clerk/visibility {:code :hide :result :hide}}
 (defmacro doc
   [sym]
-  `(clerk/html [:pre (with-out-str (repl/doc ~sym))]))
+  `(clerk/html
+    {::clerk/width :wide}
+    [:pre (with-out-str (repl/doc ~sym))]))
 
 (doc dist/uniform-discrete)
 (doc dist/bernoulli)
@@ -49,13 +52,13 @@
 ;; The function `f` first binds the value of `n0` to a random value drawn from
 ;; the set of integers `#{1 ... 10}`:
 
-;; ```
+;; ```clojure
 ;; (dist/uniform-discrete 1 10)
 ;; ```
 
 ;; Then, with probability `p`, it multiplies n by two:
 ;;
-;; ```
+;; ```clojure
 ;; (if (dist/bernoulli p)
 ;;   (* n0 2)
 ;;   n0)
@@ -65,7 +68,7 @@
 ;; the integer is `n`, and with probability `0.5` it is uniformly chosen from
 ;; the remaining `19` integers. It returns this sampled integer:
 
-;; ```
+;; ```clojure
 ;; (dist/categorical (for [i (range 1 21)]
 ;;                      (if (= i n1)
 ;;                        0.5
