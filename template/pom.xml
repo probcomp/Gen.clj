@@ -19,6 +19,12 @@
         <developer>
             <name>Zane Shelby</name>
         </developer>
+        <developer>
+            <name>Ulrich Schaechtle</name>
+        </developer>
+        <developer>
+            <name>Sam Ritchie</name>
+        </developer>
     </developers>
     <scm>
         <url>https://github.com/InferenceQL/gen.clj</url>
