@@ -2,7 +2,7 @@
   (:require [nextjournal.clerk :as clerk]))
 
 (def index
-  "examples/introduction.clj")
+  "examples/intro_to_modeling.clj")
 
 (def notebooks
   ["examples/introduction.clj"
