@@ -8,10 +8,7 @@
  :aliases
  {:nextjournal/clerk
   {:extra-paths ["dev" "examples" "examples/src"]
-   :extra-deps {io.github.nextjournal/clerk
-                #_{:mvn/version "0.14.919"}
-                {:git/sha "fc6df7186bfea2571fff2dd790d0ad63f8d6295f"}
-                }
+   :extra-deps {io.github.nextjournal/clerk {:mvn/version "0.14.919"}}
    :exec-fn user/build!}
 
   :test
