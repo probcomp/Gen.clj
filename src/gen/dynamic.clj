@@ -186,6 +186,7 @@
 (defmacro gen
   "Defines a generative function."
   [& args]
+  {:clj-kondo/lint-as 'clojure.core/fn}
   (let [name (when (simple-symbol? (first args))
                (first args))
         [params & body] (if name (rest args) args)]
