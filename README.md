@@ -7,8 +7,11 @@
 An open-source stack for generative modeling and probabilistic inference.
 
 > **Warning**
->
-> Gen.clj, the Clojure implementation of the Gen language, currently only supports a subset of Gen's features. For a complete implementation see [Gen.jl](https://github.com/probcomp/Gen.jl). If you would like to get involved with Gen.clj's development please [contact us](mailto:contributing@zane.io).
+> Gen.clj, the Clojure implementation of the Gen language, currently only
+> supports a subset of Gen's features. For a complete implementation see
+> [Gen.jl](https://github.com/probcomp/Gen.jl). If you would like to get
+> involved with Gen.clj's development please [contact
+> us](mailto:contributing@zane.io).
 
 ## Why Gen?
 
@@ -22,7 +25,10 @@ An open-source stack for generative modeling and probabilistic inference.
 
 ### Install
 
-Gen.clj is currently only available as a [git dependency](https://clojure.org/guides/deps_and_cli#_using_git_libraries). To install Gen.clj, add the following entry to your `deps.edn` under the `:deps` key:
+Gen.clj is currently only available as a [git
+dependency](https://clojure.org/guides/deps_and_cli#_using_git_libraries). To
+install Gen.clj, add the following entry to your `deps.edn` under the `:deps`
+key:
 
 ``` clojure
 io.github.inferenceql/gen.clj {:git/url "https://github.com/inferenceql/gen.clj"
@@ -31,37 +37,66 @@ io.github.inferenceql/gen.clj {:git/url "https://github.com/inferenceql/gen.clj"
 
 ### Learn
 
-There are tutorials available as [Clerk](https://github.com/nextjournal/clerk/) notebooks in the `examples` directory. 
+The project's [interactive documentation][emmy-viewers-url] was generated from
+the notebooks in the
+[`examples`](https://github.com/InferenceQL/gen.clj/tree/main/examples)
+directory using Nextjournal's [Clerk][clerk-url]. If you'd like to edit or play
+with the documentation or demos, you'll need to install
 
-To view a notebook first clone this repository, then start a Clojure REPL that includes Clerk:
+- The [Clojure command line tool](https://clojure.org/guides/install_clojure)
+- [Babashka](https://github.com/babashka/babashka#installation)
 
-``` shell
-clj -A:clerk
+Next, clone the repository:
+
+```bash
+git clone git@github.com:InferenceQL/gen.clj.git
+cd gen.clj
 ```
 
-Require and start Clerk:
+Run this command in the cloned repository:
 
-``` clojure
-(require '[nextjournal.clerk :as clerk])
-(clerk/serve! {:browse true})
+```sh
+bb clerk-watch
 ```
 
-This will open a tab in your web browser. You can then view a notebook in that tab:
+This will open a browser window to `http://localhost:7777` with the contents of
+the ["Introduction to Modeling in
+Gen.clj"](https://github.com/InferenceQL/gen.clj/blob/main/examples/intro_to_modeling.clj)
+notebook loaded. Any edits you make to `examples/intro_to_modeling.clj` on your
+filesystem will update this page, and editing any other file in `examples`, like
+`examples/introduction.clj`, will load that file's namespace into the browser.
 
-``` clojure
-(clerk/show! "examples/intro_to_modeling.clj")
-```
-
-For more information on Clerk see the [Book of Clerk](https://book.clerk.vision/) and the [Clerk repository](https://github.com/nextjournal/clerk).
+For more information on Clerk see the [Book of
+Clerk](https://book.clerk.vision/) and the [Clerk
+repository](https://github.com/nextjournal/clerk).
 
 ## Contributors
 
 ### The Gen team
 
-Gen.jl was created by [Marco Cusumano-Towner](https://www.mct.dev/) the [MIT Probabilistic Computing Project](http://probcomp.csail.mit.edu/), which is led by [Vikash Mansinghka](http://probcomp.csail.mit.edu/principal-investigator/). Gen.jl has grown and is maintained through the help of a core research and engineering team that includes [Alex Lew](http://alexlew.net/), [Tan Zhi-Xuan](https://github.com/ztangent/), [George Matheos](https://www.linkedin.com/in/george-matheos-429982160/), [McCoy Becker](https://femtomc.github.io/), and [Feras Saad](http://fsaad.mit.edu/), as well as a number of open-source contributors. Gen.jl was adapted to Clojure by [Zane Shelby](https://zane.io) with help from Ulrich Schaechtle. The Gen architecture is described in [Marco's PhD thesis](https://www.mct.dev/assets/mct-thesis.pdf).
+Gen.jl was created by [Marco Cusumano-Towner](https://www.mct.dev/) the [MIT
+Probabilistic Computing Project](http://probcomp.csail.mit.edu/), which is led
+by [Vikash Mansinghka](http://probcomp.csail.mit.edu/principal-investigator/).
+Gen.jl has grown and is maintained through the help of a core research and
+engineering team that includes [Alex Lew](http://alexlew.net/), [Tan
+Zhi-Xuan](https://github.com/ztangent/), [George
+Matheos](https://www.linkedin.com/in/george-matheos-429982160/), [McCoy
+Becker](https://femtomc.github.io/), and [Feras Saad](http://fsaad.mit.edu/), as
+well as a number of open-source contributors. Gen.jl was adapted to Clojure by
+[Zane Shelby](https://zane.io) with help from Ulrich Schaechtle. The Gen
+architecture is described in [Marco's PhD
+thesis](https://www.mct.dev/assets/mct-thesis.pdf).
 
 ### Citation
 
 If you use Gen in your research, please cite our PLDI paper:
 
-> Gen: A General-Purpose Probabilistic Programming System with Programmable Inference. Cusumano-Towner, M. F.; Saad, F. A.; Lew, A.; and Mansinghka, V. K. In Proceedings of the 40th ACM SIGPLAN Conference on Programming Language Design and Implementation (PLDI ‘19). ([pdf](https://dl.acm.org/doi/10.1145/3314221.3314642)) ([bibtex](https://www.gen.dev/assets/gen-pldi.txt))
+> Gen: A General-Purpose Probabilistic Programming System with Programmable
+> Inference. Cusumano-Towner, M. F.; Saad, F. A.; Lew, A.; and Mansinghka, V. K.
+> In Proceedings of the 40th ACM SIGPLAN Conference on Programming Language
+> Design and Implementation (PLDI ‘19).
+> ([pdf](https://dl.acm.org/doi/10.1145/3314221.3314642))
+> ([bibtex](https://www.gen.dev/assets/gen-pldi.txt))
+
+
+[clerk-url]: https://github.com/nextjournal/clerk
