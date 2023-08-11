@@ -19,3 +19,4 @@ pom.xml
 !template/pom.xml
 pom.xml.asc
 node_modules
+**.shadow-cljs
