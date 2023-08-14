@@ -1,6 +1,8 @@
 (ns user
   (:require [nextjournal.clerk :as clerk]))
 
+(set! *warn-on-reflection* true)
+
 (def index
   "examples/intro_to_modeling.clj")
 
