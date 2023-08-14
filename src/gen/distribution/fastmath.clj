@@ -32,6 +32,9 @@
 
   trace/Update
   (update [prev-trace constraints]
+    ;; TODO what is different here between this and the commons math one?
+    ;;
+    ;; NOTE I think it is only the `gf` argument, and that itself is handled by protocols. So we can probably
     (-> (cond (dynamic.choice-map/choice? constraints)
               (-> (gf/generate gf (trace/args prev-trace) constraints)
                   (update :weight - (trace/score prev-trace))
