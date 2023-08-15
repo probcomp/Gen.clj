@@ -7,8 +7,6 @@
             [gen.generative-function :as gf]
             [gen.trace :as trace]))
 
-(set! *warn-on-reflection* true)
-
 ;; https://generateme.github.io/fastmath/fastmath.random.html#var-distribution
 ;; https://www.gen.dev/docs/stable/ref/distributions/#Probability-Distributions-1
 
@@ -34,7 +32,8 @@
   (update [prev-trace constraints]
     ;; TODO what is different here between this and the commons math one?
     ;;
-    ;; NOTE I think it is only the `gf` argument, and that itself is handled by protocols. So we can probably
+    ;; NOTE I think it is only the `gf` argument, and that itself is handled by
+    ;; protocols. So we can probably abstract this out.
     (-> (cond (dynamic.choice-map/choice? constraints)
               (-> (gf/generate gf (trace/args prev-trace) constraints)
                   (update :weight - (trace/score prev-trace))
@@ -59,32 +58,34 @@
   ([k args->config]
    (fastmath-distribution k args->config identity identity))
   ([k args->config fastmath-sample->sample sample->fastmath-sample]
-   (let [args->dist (fn [& args]
-                      (random/distribution k (apply args->config args)))
+   (let [args->dist              (fn [& args]
+                                   (random/distribution k (apply args->config args)))
          args->fastmath-sample (fn [& args]
                                  (random/sample (apply args->dist args)))]
      (with-meta (comp fastmath-sample->sample args->fastmath-sample)
-       {`gf/simulate (fn [gf args]
-                       (let [config (apply args->config args)
-                             fastmath-dist (random/distribution k config)
-                             fastmath-sample (apply args->fastmath-sample args)
-                             retval (fastmath-sample->sample fastmath-sample)
-                             score (random/log-likelihood fastmath-dist [fastmath-sample])]
-                         (trace gf args retval score)))
-        `gf/generate (fn
-                       ([gf args]
-                        {:weight 0
-                         :trace (gf/simulate gf args)})
-                       ([gf args constraints]
-                        (assert (dynamic.choice-map/choice? constraints))
-                        (let [retval (choice-map/value constraints)
-                              config (apply args->config args)
-                              fastmath-dist (random/distribution k config)
-                              fastmath-sample (sample->fastmath-sample retval)
-                              weight (random/log-likelihood fastmath-dist [fastmath-sample])
-                              trace (trace gf args retval weight)]
-                          {:weight weight
-                           :trace trace})))}))))
+       {`gf/simulate
+        (fn [gf args]
+          (let [config (apply args->config args)
+                fastmath-dist (random/distribution k config)
+                fastmath-sample (apply args->fastmath-sample args)
+                retval (fastmath-sample->sample fastmath-sample)
+                score (random/log-likelihood fastmath-dist [fastmath-sample])]
+            (trace gf args retval score)))
+        `gf/generate
+        (fn
+          ([gf args]
+           {:weight 0
+            :trace (gf/simulate gf args)})
+          ([gf args constraints]
+           (assert (dynamic.choice-map/choice? constraints))
+           (let [retval (choice-map/value constraints)
+                 config (apply args->config args)
+                 fastmath-dist (random/distribution k config)
+                 fastmath-sample (sample->fastmath-sample retval)
+                 weight (random/log-likelihood fastmath-dist [fastmath-sample])
+                 trace (trace gf args retval weight)]
+             {:weight weight
+              :trace trace})))}))))
 
 (def bernoulli
   "Samples a Bool value which is true with given probability."

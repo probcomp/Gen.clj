@@ -7,7 +7,7 @@
             [gen.clerk.callout :as callout]
             [gen.clerk.viewer :as viewer]
             [gen.distribution.apache-commons-math3 :as math3]
-            [gen.distribution.fastmath :as fastmath]
+            [gen.distribution.kixi :as kixi]
             [gen.generative-function :as gf]
             [nextjournal.clerk :as clerk]))
 
@@ -171,7 +171,7 @@
 ;;          '[gen.distribution.apache-commons-math3 :as math3])
 ;; ```
 
-(def my-variable (gen/trace :my-variable-address (fastmath/normal 0 1)))
+(def my-variable (gen/trace :my-variable-address (kixi/normal 0 1)))
 
 ;; Every random choice must be given an _address_, which can be an arbitrary
 ;; value—but we often use a keyword.  (`:my-variable-address` is a keyword in
@@ -179,9 +179,9 @@
 ;; random choice, which is distinct from the name of the variable. For example,
 ;; consider the following code:
 
-(let [x (gen/trace :initial-x (fastmath/normal 0 1))]
+(let [x (gen/trace :initial-x (kixi/normal 0 1))]
   (if (< x 0)
-    (+ x (gen/trace :addition-to-x (fastmath/normal 2 1)))
+    (+ x (gen/trace :addition-to-x (kixi/normal 2 1)))
     x))
 
 ;; This code manipulates a single variable, `x`, but may make up to two random
@@ -228,8 +228,8 @@
     ;; prior beliefs about the parameters: in this case, that neither the slope
     ;; nor the intercept will be more than a couple points away from 0.
 
-    (let [slope (gen/trace :slope (fastmath/normal 0 1))
-          intercept (gen/trace :intercept (fastmath/normal 0 2))
+    (let [slope (gen/trace :slope (kixi/normal 0 1))
+          intercept (gen/trace :intercept (kixi/normal 0 2))
 
           ;; We define a function to compute y for a given x.
 
@@ -241,7 +241,7 @@
       ;; the x coordinates in our input vector.
 
       (doseq [[i x] (map vector (range) xs)]
-        (gen/trace [:y i] (fastmath/normal (y x) 0.1)))
+        (gen/trace [:y i] (kixi/normal (y x) 0.1)))
 
       ;; Most of the time, we don't care about the return
       ;; value of a model, only the random choices it makes.
@@ -419,10 +419,10 @@
 ;; amplitude, and then generates y-coordinates from a given vector of
 ;; x-coordinates by adding noise to the value of the wave at each x-coordinate.
 ;; Use a `gamma(1, 1)` prior distribution for the period, and a `gamma(1, 1)`
-;; prior distribution on the amplitude (see `gen.distribution.fastmath/gamma`).
+;; prior distribution on the amplitude (see `gen.distribution.kixi/gamma`).
 ;; Sampling from a Gamma distribution will ensure to give us postive real
 ;; values.  Use a uniform distribution between 0 and $2\pi$ for the phase (see
-;; `gen.distribution.fastmath/uniform`).
+;; `gen.distribution.kixi/uniform`).
 
 ;; The sine wave should implement:
 
@@ -456,7 +456,7 @@ math/PI
 
       (dotimes [i (count xs)]
         (let [x (nth xs i)]
-          (gen/trace [:y i] (fastmath/normal (y x) 0.1))))
+          (gen/trace [:y i] (kixi/normal (y x) 0.1))))
 
       y))) ; We return the `y` function so it can be used for plotting, below.
 
@@ -497,9 +497,9 @@ math/PI
 (comment
   (def sine-model
     (gen [xs]
-      (let [period (gen/trace :period (fastmath/gamma 1 1))
-            amplitude (gen/trace :amplitude (fastmath/gamma 1 1))
-            phase (gen/trace :phase (fastmath/uniform 0 (* 2 math/PI)))
+      (let [period (gen/trace :period (kixi/gamma 1 1))
+            amplitude (gen/trace :amplitude (kixi/gamma 1 1))
+            phase (gen/trace :phase (kixi/uniform 0 (* 2 math/PI)))
 
             ;; Define a deteriministic sine wave with the values above.
             y (fn  [x]
@@ -511,7 +511,7 @@ math/PI
 
         (dotimes [i (count xs)]
           (let [x (nth xs i)]
-            (gen/trace [:y i] (fastmath/normal (y x) 0.1))))
+            (gen/trace [:y i] (kixi/normal (y x) 0.1))))
 
         y))))
 
@@ -785,19 +785,19 @@ math/PI
 ;; the other parameters.
 
 ;; We first write a new version of the line model that samples a random choice
-;; for the noise from a `(fastmath/gamma 1 1)` prior distribution.
+;; for the noise from a `(kixi/gamma 1 1)` prior distribution.
 
 ^{::clerk/visibility {:result :hide}}
 (def line-model-fancy
   (gen [xs]
-    (let [slope (gen/trace :slope (fastmath/normal 0 1))
-          intercept (gen/trace :intercept (fastmath/normal 0 2))
+    (let [slope (gen/trace :slope (kixi/normal 0 1))
+          intercept (gen/trace :intercept (kixi/normal 0 2))
           y (fn [x]
               (+ (* slope x)
                  intercept))
-          noise (gen/trace :noise (fastmath/gamma 1 1))]
+          noise (gen/trace :noise (kixi/gamma 1 1))]
       (doseq [[i x] (map-indexed vector xs)]
-        (gen/trace [:y i] (fastmath/normal (y x) noise)))
+        (gen/trace [:y i] (kixi/normal (y x) noise)))
       y)))
 
 ;; Then, we compare the predictions using inference of the unmodified and
@@ -850,7 +850,7 @@ math/PI
               ;; < your code here >
               x)]
       (doseq [[i x] (map-indexed vector xs)]
-        (gen/trace [:y i] (fastmath/normal (y x) 0.1)))
+        (gen/trace [:y i] (kixi/normal (y x) 0.1)))
       y)))
 
 ;; Experiment with the vaue of `ex-4-1-computation` below.
@@ -875,10 +875,10 @@ math/PI
 (comment
   (def sine-model-fancy
     (gen [xs]
-      (let [period (gen/trace :period (fastmath/gamma 5 1))
-            amplitude (gen/trace :amplitude (fastmath/gamma 1 1))
-            phase (gen/trace :phase (fastmath/uniform 0 (* 2 math/PI)))
-            noise (gen/trace :noise (fastmath/gamma 1 1))
+      (let [period (gen/trace :period (kixi/gamma 5 1))
+            amplitude (gen/trace :amplitude (kixi/gamma 1 1))
+            phase (gen/trace :phase (kixi/uniform 0 (* 2 math/PI)))
+            noise (gen/trace :noise (kixi/gamma 1 1))
             y (fn [x]
                 (* amplitude
                    (math/sin (+ (* x
@@ -886,7 +886,7 @@ math/PI
                                       period))
                                 phase))))]
         (doseq [[i x] (map-indexed vector xs)]
-          (gen/trace [:y i] (fastmath/normal (y x) noise))))
+          (gen/trace [:y i] (kixi/normal (y x) noise))))
       y)))
 
 ;; ## 5. Calling other generative functions
@@ -917,18 +917,18 @@ math/PI
 
 (def foo
   (gen []
-    (gen/trace :y (fastmath/normal 0 1))))
+    (gen/trace :y (kixi/normal 0 1))))
 
 (def bar
   (gen []
-    (gen/trace :x (fastmath/bernoulli 0.5))
+    (gen/trace :x (kixi/bernoulli 0.5))
     ;; Call `foo` with `gen/splice`. Its choices (`:y`) will appear directly
     ;; within the trace of `bar`.
     (gen/splice (foo))))
 
 (def bar-with-key
   (gen []
-    (gen/trace :x (fastmath/bernoulli 0.5))
+    (gen/trace :x (kixi/bernoulli 0.5))
     ;; Call `foo` with the address `:z`.  The internal choice `:y` of `foo` will
     ;; appear in our trace at the hierarchical address `[:z :y]`.
     (gen/trace :z (foo))))
@@ -957,7 +957,7 @@ math/PI
 
 (def combined-model
   (gen [xs]
-    (if (gen/trace :is-line (fastmath/bernoulli 0.5))
+    (if (gen/trace :is-line (kixi/bernoulli 0.5))
       ;; Call `line-model-fancy` on xs, and import its random choices directly
       ;; into our trace.
       (gen/splice (line-model-fancy xs))
@@ -1097,8 +1097,8 @@ math/PI
 
 (def generate-segments
   (gen [lower upper]
-    (if (gen/trace :is-leaf (fastmath/bernoulli 0.7))
-      (let [value (gen/trace :value (fastmath/normal 0 1))]
+    (if (gen/trace :is-leaf (kixi/bernoulli 0.7))
+      (let [value (gen/trace :value (kixi/normal 0 1))]
         #:node{:interval [lower upper] :value value})
       (let [frac (gen/trace :frac (math3/beta 2 2))
             mid (+ lower
@@ -1193,8 +1193,8 @@ math/PI
           node (gen/trace :tree (generate-segments lower upper))
           noise (gen/trace :noise (math3/gamma 0.5 0.5))]
       (doseq [[i x] (map-indexed vector xs)]
-        (gen/trace [:y i] (fastmath/normal (get-value-at x node)
-                                           noise)))
+        (gen/trace [:y i] (kixi/normal (get-value-at x node)
+                                       noise)))
       node)))
 
 ;; We write a visualization for `changepoint-model` below:
