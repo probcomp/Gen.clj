@@ -23,6 +23,10 @@
   {:doc "Run CLJ tests."
    :task (shell "clojure -X:test:runner")}
 
+  test:cljs
+  {:doc "Run CLJS tests."
+   :task (shell "npm run test")}
+
   build-static
   {:doc "Generate a fresh static build."
    :task
