@@ -2,8 +2,6 @@
   (:import [clojure.lang MapEntry])
   (:require [gen.choice-map :as choice-map]))
 
-(set! *warn-on-reflection* true)
-
 ;; https://blog.wsscode.com/guide-to-custom-map-types/
 ;; https://github.com/originrose/lazy-map/blob/119dda207fef90c1e26e6c01aa63e6cfb45c1fa8/src/lazy_map/core.clj#L197-L278
 
