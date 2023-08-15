@@ -3,8 +3,6 @@
             [gen.dynamic.choice-map :as dynamic.choice-map]
             [gen.trace :as trace]))
 
-(set! *warn-on-reflection* true)
-
 (defn no-op
   ([gf args]
    (apply gf args))

@@ -7,8 +7,6 @@
             [gen.generative-function :as gf]
             [gen.trace :as trace]))
 
-(set! *warn-on-reflection* true)
-
 (defprotocol LogPDF
   (logpdf [_ v]))
 
