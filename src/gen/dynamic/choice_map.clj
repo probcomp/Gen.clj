@@ -1,6 +1,6 @@
 (ns gen.dynamic.choice-map
-  (:import [clojure.lang MapEntry])
-  (:require [gen.choice-map :as choice-map]))
+  (:require [gen.choice-map :as choice-map])
+  (:import (clojure.lang Associative IFn IObj IPersistentMap IMapIterable MapEntry)))
 
 ;; https://blog.wsscode.com/guide-to-custom-map-types/
 ;; https://github.com/originrose/lazy-map/blob/119dda207fef90c1e26e6c01aa63e6cfb45c1fa8/src/lazy_map/core.clj#L197-L278
@@ -33,114 +33,102 @@
     (choice-map/value x)
     x))
 
-(deftype ChoiceMap [^clojure.lang.IPersistentMap m]
-  clojure.lang.Associative
-  (containsKey [_ k]
-    (contains? m k))
+(declare ->map)
+
+(deftype ChoiceMap [m]
+  choice-map/Submaps
+  (submaps [_] m)
+
+  Object
+  (equals [_ o] (and (instance? ChoiceMap o) (= m (.-m ^ChoiceMap o))))
+  (toString [this] (pr-str this))
+
+  IFn
+  (invoke [this k] (.valAt this k))
+  (invoke [this k not-found] (.valAt this k not-found))
+
+  IObj
+  (meta [_] (meta m))
+  (withMeta [_ meta-m] (ChoiceMap. (with-meta m meta-m)))
+
+  IPersistentMap
+  (assocEx [_ _ _] (throw (Exception.)))
+  (assoc   [_ k v]
+    (ChoiceMap. (.assoc ^IPersistentMap m k (choice v))))
+  (without [_ k]
+    (ChoiceMap. (.without ^IPersistentMap m k)))
+
+  Associative
+  (containsKey [_ k] (contains? m k))
   (entryAt [_ k]
     (when (contains? m k)
       (MapEntry/create k (auto-get-choice (get m k)))))
-
-  clojure.lang.IFn
-  (invoke [this k]
-    (.valAt this k))
-
-  clojure.lang.ILookup
-  (valAt [_ k]
-    (auto-get-choice (get m k)))
-  (valAt [_ k not-found]
-    (auto-get-choice (get m k not-found)))
-
-  clojure.lang.IMapIterable
-  (keyIterator [_]
-    (.iterator
-     ^java.lang.Iterable
-     (keys m)))
-  (valIterator [_]
-    (.iterator
-     ^java.lang.Iterable
-     (map auto-get-choice m)))
-
-  clojure.lang.IPersistentCollection
   (cons [this o]
     (if (map? o)
       (reduce-kv assoc this o)
       (let [[k v] o]
-        (ChoiceMap. (.assoc m k (choice v))))))
-  (count [_]
-    (count m))
-  (empty [_]
-    (ChoiceMap. {}))
-  (equiv [_ o]
-    (and (instance? ChoiceMap o)
-         (= m (.-m ^ChoiceMap o))))
-
-  clojure.lang.IPersistentMap
-  (assoc [_ k v]
-    (ChoiceMap. (.assoc m k (choice v))))
-  (without [_ k]
-    (ChoiceMap. (.without m k)))
-
-  clojure.lang.Seqable
+        (ChoiceMap. (assoc m k (choice v))))))
+  (count [_] (count m))
   (seq [_]
     (when-let [kvs (seq m)]
       (map (fn [[k v]]
              (MapEntry/create k (auto-get-choice v)))
            kvs)))
+  (empty [_] (ChoiceMap. (empty m)))
+  (valAt [_ k]
+    (auto-get-choice (get m k)))
+  (valAt [_ k not-found]
+    (auto-get-choice (get m k not-found)))
+  (equiv [_ o]
+    (and (instance? ChoiceMap o) (= m (.-m ^ChoiceMap o))))
 
-  java.lang.Iterable
-  (iterator [this]
-    (.iterator
-     ^java.lang.Iterable
-     (.seq this)))
+  IMapIterable
+  (keyIterator [_]
+    (.iterator ^Iterable (keys m)))
+  (valIterator [_]
+    (.iterator ^Iterable (map auto-get-choice m)))
 
-  java.lang.Object
-  (toString [this]
-    (pr-str this))
+  Iterable
+  (iterator [this] (.iterator ^Iterable (.seq this))))
 
-  choice-map/Submaps
-  (submaps [_]
-    m))
+(defn ^:no-doc ->map [^ChoiceMap cm]
+  (letfn [(inner [m]
+            (reduce-kv
+             (fn [acc k v]
+               (cond (instance? ChoiceMap v)
+                     (assoc acc k (inner (.-m ^ChoiceMap v)))
 
+                     (instance? Choice v)
+                     (let [choice (choice-map/value v)]
+                       (if (map? choice)
+                         (assoc acc k (inner choice))
+                         (assoc acc k choice)))
+
+                     :else
+                     (throw (ex-info
+                             "Error converting choice map. Invalid choice map."
+                             {:parent cm :key k :value v}))))
+             {}
+             m))]
+    (inner (.-m cm))))
 
 (defmethod print-method ChoiceMap [^ChoiceMap cm ^java.io.Writer w]
   (.write w "#gen/choice-map ")
-  (let [print-inner-map (fn print-inner-map [m]
-                          (.write w "{")
-                          (doseq [[i [k v]] (map-indexed vector m)]
-                            (.write w (pr-str k))
-                            (.write w " ")
-                            (cond (instance? ChoiceMap v)
-                                  (print-inner-map (.-m ^ChoiceMap v))
-
-                                  (instance? Choice v)
-                                  (let [choice (choice-map/value v)]
-                                    (if (map? choice)
-                                      (.write w (pr-str v))
-                                      (.write w (pr-str choice))))
-
-                                  :else
-                                  (throw (ex-info "Error printing choice map. Invalid choice map." {:parent cm :key k :value v})))
-                            (when-not (= i (dec (count cm)))
-                              (.write w " ")))
-                          (.write w "}"))]
-    (print-inner-map (.-m cm))))
+  (print-method (->map cm) w))
 
 (defn choice-map
   [& {:as m}]
-  (-> m
-      (update-vals (fn [x]
-                     (cond (or (instance? Choice x)
-                               (instance? ChoiceMap x))
-                           x
+  (ChoiceMap.
+   (update-vals m (fn [x]
+                    (cond (or (instance? Choice x)
+                              (instance? ChoiceMap x))
+                          x
 
-                           (map? x)
-                           (choice-map x)
+                          (map? x)
+                          (choice-map x)
 
-                           :else
-                           (Choice. x))))
-      (ChoiceMap.)))
+                          :else
+                          (Choice. x))))))
 
-(defn choice-map?
-  [x]
+(defn choice-map? [x]
   (instance? ChoiceMap x))
