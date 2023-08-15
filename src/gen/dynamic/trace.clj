@@ -1,7 +1,10 @@
 (ns gen.dynamic.trace
+  (:refer-clojure :exclude [=])
   (:require [clojure.core :as core]
             [gen.dynamic.choice-map :as dynamic.choice-map]
-            [gen.trace :as trace]))
+            [gen.trace :as trace])
+  (:import
+   (clojure.lang Associative IFn IObj IMapIterable Seqable)))
 
 (defn no-op
   ([gf args]
@@ -25,49 +28,9 @@
              *splice* no-op]
      ~@body))
 
-(declare assoc-subtrace merge-trace set-retval! trace)
+(declare assoc-subtrace merge-trace set-retval! trace =)
 
-(deftype Trace [gf args ^clojure.lang.PersistentArrayMap subtraces retval score]
-  clojure.lang.Associative
-  (containsKey [_ k]
-    (contains? subtraces k))
-  (entryAt [_ k]
-    (.entryAt subtraces k))
-
-  clojure.lang.Counted
-  (count [_]
-    (count subtraces))
-
-  clojure.lang.IFn
-  (invoke [this k]
-    (.valAt this k))
-
-  clojure.lang.ILookup
-  (valAt [this k]
-    (get (trace/choices this) k))
-  (valAt [this k not-found]
-    (get (trace/choices this) k not-found))
-
-  clojure.lang.IMapIterable
-  (keyIterator [this]
-    (.iterator
-     ^java.lang.Iterable
-     (keys (trace/choices this))))
-  (valIterator [this]
-    (.iterator
-     ^java.lang.Iterable
-     (vals (trace/choices this))))
-
-  clojure.lang.Seqable
-  (seq [this]
-    (seq (trace/choices this)))
-
-  java.lang.Iterable
-  (iterator [this]
-    (.iterator
-     (let [^clojure.lang.Seqable choice-map (trace/choices this)]
-       ^java.lang.Iterable (.seq choice-map))))
-
+(deftype Trace [gf args subtraces retval score]
   trace/Args
   (args [_]
     args)
@@ -89,11 +52,53 @@
     ;; TODO Handle untraced randomness.
     (if (realized? score)
       @score
-      (do (deliver score (transduce (map trace/score)
-                                    +
-                                    0
-                                    (vals subtraces)))
-          @score))))
+      (do (deliver score (transduce (map trace/score) + 0 (vals subtraces)))
+          @score)))
+
+  Object
+  (equals [this that] (= this that))
+  (toString [this] (pr-str this))
+
+  IFn
+  (invoke [this k] (.valAt this k))
+  (invoke [this k not-found] (.valAt this k not-found))
+
+  IObj
+  (meta [_] (meta subtraces))
+  (withMeta [_ m] (Trace. gf args (with-meta subtraces m) retval score))
+
+  Associative
+  (containsKey [_ k] (contains? subtraces k))
+  (entryAt [_ k] (.entryAt ^Associative subtraces k))
+  (count [_] (count subtraces))
+  (seq [this] (seq (trace/choices this)))
+  (valAt [this k]
+    (get (trace/choices this) k))
+  (valAt [this k not-found]
+    (get (trace/choices this) k not-found))
+  (equiv [this that] (= this that))
+  ;; TODO missing `cons`, `empty`?
+
+  IMapIterable
+  (keyIterator [this]
+    (.iterator ^Iterable (keys (trace/choices this))))
+  (valIterator [this]
+    (.iterator ^Iterable (vals (trace/choices this))))
+
+  java.lang.Iterable
+  (iterator [this]
+    (.iterator
+     (let [^Seqable choice-map (trace/choices this)]
+       ^Iterable (.seq choice-map)))))
+
+(defn ^:no-doc = [^Trace this that]
+  (and (instance? Trace that)
+       (let [^Trace that that]
+         (and (core/= (.-gf this) (.-gf that))
+              (core/= (.-args this) (.-args that))
+              (core/= (.-subtraces this) (.-subtraces that))
+              (core/= (.-retval this) (.-retval that))
+              (core/= (.-score this) (.-score that))))))
 
 (defn trace
   [gf args]
