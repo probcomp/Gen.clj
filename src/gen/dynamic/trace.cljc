@@ -1,4 +1,5 @@
 (ns gen.dynamic.trace
+  #?(:clj (:refer-clojure :exclude [promise]))
   (:require [gen.dynamic.choice-map :as dynamic.choice-map]
             [gen.trace :as trace])
   #?(:cljs
@@ -25,8 +26,6 @@
   `(binding [*trace* no-op
              *splice* no-op]
      ~@body))
-
-(declare assoc-subtrace merge-trace set-retval! trace)
 
 (deftype Trace [gf args subtraces retval score]
   trace/Args
@@ -98,18 +97,19 @@
                   (let [^clojure.lang.Seqable choice-map (trace/choices this)]
                     ^java.lang.Iterable (.seq choice-map))))]))
 
-;; TODO cljs
-#?(:cljs (defn trace [_ _])
-   :clj
-   (defn trace
-     [gf args]
-     (Trace. gf args {} (promise) (promise))))
+(def promise
+  #?(:cljs #(atom nil)
+     :clj  clojure.core/promise))
+
+(defn trace
+  [gf args]
+  (Trace. gf args {} (promise) (promise)))
 
 (defn set-retval!
-  [^Trace t #?(:clj retval :cljs _retval)]
+  [^Trace t retval]
   ;; TODO cljs
-  #?(:clj
-     (deliver (.-retval t) retval))
+  #?(:clj  (deliver (.-retval t) retval)
+     :cljs (swap! (.-retval t) retval))
   t)
 
 (defn assoc-subtrace

@@ -8,6 +8,8 @@
             [gen.dynamic.trace :as dynamic.trace #?@(:cljs [:refer [Trace]])]
             [gen.generative-function :as gf]
             [gen.trace :as trace])
+  #?(:cljs
+     (:require-macros [gen.dynamic]))
   #?(:clj
      (:import (gen.dynamic.trace Trace))))
 
@@ -87,7 +89,32 @@
        (invoke [_ arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16 arg17 arg18 s] (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16 arg17 arg18 s)))
        (invoke [_ arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16 arg17 arg18 arg19 arg20] (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16 arg17 arg18 arg19 arg20)))
        (invoke [_ arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16 arg17 arg18 arg19 arg20 args] (apply clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16 arg17 arg18 arg19 arg20 args))
-       (applyTo [_ arglist] (dynamic.trace/without-tracing (.applyTo ^clojure.lang.IFn clojure-fn arglist)))]))
+       (applyTo [_ arglist] (dynamic.trace/without-tracing (.applyTo ^clojure.lang.IFn clojure-fn arglist)))]
+
+      :cljs
+      [IFn
+       (-invoke [_] (dynamic.trace/without-tracing (clojure-fn)))
+       (-invoke [_ arg1] (dynamic.trace/without-tracing (clojure-fn arg1)))
+       (-invoke [_ arg1 arg2] (dynamic.trace/without-tracing (clojure-fn arg1 arg2)))
+       (-invoke [_ arg1 arg2 arg3] (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3)))
+       (-invoke [_ arg1 arg2 arg3 arg4] (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3 arg4)))
+       (-invoke [_ arg1 arg2 arg3 arg4 arg5] (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3 arg4 arg5)))
+       (-invoke [_ arg1 arg2 arg3 arg4 arg5 arg6] (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6)))
+       (-invoke [_ arg1 arg2 arg3 arg4 arg5 arg6 arg7] (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7)))
+       (-invoke [_ arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8] (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8)))
+       (-invoke [_ arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9] (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)))
+       (-invoke [_ arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10] (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10)))
+       (-invoke [_ arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11] (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11)))
+       (-invoke [_ arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12] (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12)))
+       (-invoke [_ arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13] (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13)))
+       (-invoke [_ arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14] (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14)))
+       (-invoke [_ arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15] (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15)))
+       (-invoke [_ arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16] (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16)))
+       (-invoke [_ arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16 arg17] (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16 arg17)))
+       (-invoke [_ arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16 arg17 arg18] (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16 arg17 arg18)))
+       (-invoke [_ arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16 arg17 arg18 s] (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16 arg17 arg18 s)))
+       (-invoke [_ arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16 arg17 arg18 arg19 arg20] (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16 arg17 arg18 arg19 arg20)))
+       (-invoke [_ arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16 arg17 arg18 arg19 arg20 args] (apply clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16 arg17 arg18 arg19 arg20 args))]))
 
 (extend-type Trace
   trace/Update
@@ -194,19 +221,20 @@
     `(->DynamicDSLFunction
       (fn ~@(when name [name])
         ~params
-        ~@(walk/postwalk (fn [form]
-                           (cond (trace-form? form)
-                                 (if-not (valid-trace-form? form)
-                                   (throw (ex-info "Malformed trace expression." {:form form}))
-                                   (let [[addr [gf & args]] (rest form)]
-                                     `(dynamic.trace/*trace* ~addr ~gf ~(vec args))))
+        ~@(walk/postwalk
+           (fn [form]
+             (cond (trace-form? form)
+                   (if-not (valid-trace-form? form)
+                     (throw (ex-info "Malformed trace expression." {:form form}))
+                     (let [[addr [gf & args]] (rest form)]
+                       `(dynamic.trace/*trace* ~addr ~gf ~(vec args))))
 
-                                 (splice-form? form)
-                                 (if-not (valid-splice-form? form)
-                                   (throw (ex-info "Malformed splice expression." {:form form}))
-                                   (let [[[gf & args]] (rest form)]
-                                     `(dynamic.trace/*splice* ~gf ~(vec args))))
+                   (splice-form? form)
+                   (if-not (valid-splice-form? form)
+                     (throw (ex-info "Malformed splice expression." {:form form}))
+                     (let [[[gf & args]] (rest form)]
+                       `(dynamic.trace/*splice* ~gf ~(vec args))))
 
-                                 :else
-                                 form))
-                         body)))))
+                   :else
+                   form))
+           body)))))
