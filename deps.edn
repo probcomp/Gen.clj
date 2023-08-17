@@ -1,7 +1,8 @@
 {:paths ["src" "resources"]
 
  :deps
- {generateme/fastmath
+ {kixi/stats {:mvn/version "0.5.5"}
+  generateme/fastmath
   {:mvn/version "2.2.1"
    ;; https://github.com/generateme/fastmath#mkl
    :exclusions [com.github.haifengl/smile-mkl org.bytedeco/openblas]}
