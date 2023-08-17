@@ -54,20 +54,26 @@
                      0 false
                      1 true)))))
 
-(defn beta-distribution [^double alpha ^double beta]
-  (BetaDistribution. (rng) alpha beta))
+(defn beta-distribution
+  ([] (beta-distribution 1.0 1.0))
+  ([^double alpha ^double beta]
+   (BetaDistribution. (rng) alpha beta)))
 
 (defn gamma-distribution [^double shape ^double scale]
   (GammaDistribution. (rng) shape scale))
 
-(defn normal-distribution [^double mean ^double sd]
-  (NormalDistribution. (rng) mean sd))
+(defn normal-distribution
+  ([] (normal-distribution 0.0 1.0))
+  ([^double mean ^double sd]
+   (NormalDistribution. (rng) mean sd)))
 
-(defn uniform-distribution [^double low ^double high]
-  (UniformRealDistribution. (rng) low high))
+(defn uniform-distribution
+  ([] (uniform-distribution 0.0 1.0))
+  ([^double low ^double high]
+   (UniformRealDistribution. (rng) low high)))
 
 (defn uniform-discrete-distribution [low high]
-  (UniformIntegerDistribution. low high))
+  (UniformIntegerDistribution. (rng) low high))
 
 (defn categorical-distribution [probabilities]
   (let [n  (count probabilities)
@@ -78,7 +84,6 @@
 ;; ## Primitive generative functions
 
 (def bernoulli
-  "Generative function... TODO flesh out."
   (d/->GenerativeFn bernoulli-distribution))
 
 (def beta
