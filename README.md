@@ -1,8 +1,12 @@
 # Gen.clj
 
-![tests](https://github.com/OpenIQL/inferenceql.query/workflows/tests/badge.svg)
-![linter](https://github.com/OpenIQL/inferenceql.query/workflows/linter/badge.svg)
-![Stability: Experimental](https://img.shields.io/badge/stability-experimental-orange.svg)
+<div align="center">
+
+[![Build Status][build-status]][build-status-url]
+[![Linter][linter]][linter-url]
+![Stability: Experimental][experimental-badge]
+
+</div>
 
 An open-source stack for generative modeling and probabilistic inference.
 
@@ -32,12 +36,12 @@ key:
 
 ``` clojure
 io.github.inferenceql/gen.clj {:git/url "https://github.com/inferenceql/gen.clj"
-                               :sha "3283de82c2b25870b530c22948ac3cdc1b6996d4"}
+                               :git/sha "3283de82c2b25870b530c22948ac3cdc1b6996d4"}
 ```
 
 ### Learn
 
-The project's [interactive documentation][emmy-viewers-url] was generated from
+The project's [interactive documentation][gen-clj-url] was generated from
 the notebooks in the
 [`examples`](https://github.com/InferenceQL/gen.clj/tree/main/examples)
 directory using Nextjournal's [Clerk][clerk-url]. If you'd like to edit or play
@@ -99,4 +103,16 @@ If you use Gen in your research, please cite our PLDI paper:
 > ([bibtex](https://www.gen.dev/assets/gen-pldi.txt))
 
 
+## License
+
+Distributed under the [Apache 2.0](LICENSE) license. See [LICENSE](LICENSE).
+
+[build-status-url]: https://github.com/InferenceQL/gen.clj/actions/workflows/tests.yaml?query=branch%3Amain
+[build-status]: https://github.com/InferenceQL/gen.clj/workflows/tests/badge.svg?branch=main
 [clerk-url]: https://github.com/nextjournal/clerk
+[experimental-badge]: https://img.shields.io/badge/stability-experimental-orange.svg
+[gen-clj-url]: https://github.clerk.garden/inferenceql/gen.clj
+[license-url]: LICENSE
+[license]: https://img.shields.io/badge/License-Apache_2.0-brightgreen.svg
+[linter-url]: https://github.com/InferenceQL/gen.clj/actions/workflows/linter.yaml?query=branch%3Amain
+[linter]: https://github.com/InferenceQL/gen.clj/workflows/linter/badge.svg?branch=main
