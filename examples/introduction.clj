@@ -452,16 +452,16 @@
 
 #_
 (choice-map/submaps
- (choice-map/choice-map
+ (choice-map/make
   :a true
   :c false))
 
-;; The `gen.choice-map/choice-map` constructor above took two elements
-;; of the form (address, value). This is equivalent to constructing an empty
-;; choice map and then populating it:
+;; The `gen.choice-map/make` constructor above took two elements of the
+;; form (address, value). This is equivalent to constructing an empty choice map
+;; and then populating it:
 
 (def choices
-  (assoc (choice-map/choice-map)
+  (assoc choice-map/EMPTY
          :a true
          :c false))
 

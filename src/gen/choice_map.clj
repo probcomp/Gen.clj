@@ -7,6 +7,8 @@
 
 (declare ->map)
 
+(defrecord Choice [choice])
+
 (deftype ChoiceMap [m]
   Object
   (equals [_ o] (and (instance? ChoiceMap o) (= m (.-m ^ChoiceMap o))))
@@ -64,10 +66,13 @@
 
 ;; ## Constructors
 
-(defn choice-map
+
+(defn make
   "Returns a [[ChoiceMap]] built out of the supplied key-value pairs."
   [& {:as m}]
   (->ChoiceMap (or m {})))
+
+(def EMPTY (make))
 
 (defn choice [x] x)
 

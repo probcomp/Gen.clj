@@ -1,1 +1,1 @@
-{gen/choice-map gen.choice-map/choice-map}
+{gen/choice-map gen.choice-map/make}

@@ -134,7 +134,7 @@
   (let [gf    (trace/gf this)
         state (atom {:trace (trace gf (trace/args this))
                      :weight 0
-                     :discard (choice-map/choice-map)})]
+                     :discard choice-map/EMPTY})]
     (binding [*splice*
               (fn [_gf _args]
                 (throw (ex-info "Not yet implemented." {})))

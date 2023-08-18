@@ -19,7 +19,7 @@
   (is (not (choice-map/choice-map? {}))))
 
 (deftest empty?
-  (is (clojure/empty? (choice-map/choice-map)))
+  (is (clojure/empty? (choice-map/make)))
   (is (clojure/empty? #gen/choice-map {}))
   #_{:clj-kondo/ignore [:not-empty?]}
   (is (not (clojure/empty? #gen/choice-map {:x 0}))))
