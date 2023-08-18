@@ -67,9 +67,9 @@
 
                 dynamic.trace/*trace*
                 (fn [k gf args]
-                  ;; TODO check if a key already exists?
+                  (dynamic.trace/validate-empty! @!trace k)
                   (let [subtrace (gf/simulate gf args)]
-                    (swap! !trace dynamic.trace/assoc-subtrace k subtrace)
+                    (swap! !trace dynamic.trace/assoc k subtrace)
                     (trace/retval subtrace)))]
         (let [v (apply clojure-fn args)]
           (dynamic.trace/with-val @!trace v)))))
@@ -98,7 +98,7 @@
                                                   k)]
                           (gf/generate gf args constraints)
                           (gf/generate gf args))]
-                    (swap! state update :trace dynamic.trace/assoc-subtrace k subtrace)
+                    (swap! state update :trace dynamic.trace/assoc k subtrace)
                     (swap! state update :weight + weight)
                     (trace/retval subtrace)))]
         (let [retval (apply clojure-fn args)

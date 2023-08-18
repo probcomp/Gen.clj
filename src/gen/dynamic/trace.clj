@@ -1,5 +1,7 @@
 (ns gen.dynamic.trace
-  (:require [clojure.set :as set]
+  (:refer-clojure :exclude [assoc])
+  (:require [clojure.core :as core]
+            [clojure.set :as set]
             [gen.choice-map :as choice-map]
             [gen.generative-function :as gf]
             [gen.trace :as trace]))
@@ -26,7 +28,7 @@
              *splice* no-op]
      ~@body))
 
-(declare assoc-subtrace trace update-trace with-val compute-score)
+(declare assoc trace update-trace with-val compute-score)
 
 (deftype Trace [gf args subtraces retval]
   clojure.lang.Associative
@@ -124,9 +126,9 @@
   "combine by adding weights?"
   [l k {:keys [trace weight discard] :as r}]
   (-> l
-      (update :trace assoc-subtrace k trace)
+      (update :trace assoc k trace)
       (update :weight + weight)
-      (cond-> (contains? r :discard) (update :discard assoc k discard))))
+      (cond-> (contains? r :discard) (update :discard core/assoc k discard))))
 
 (defn update-trace [this constraints]
   (let [gf    (trace/gf this)
@@ -164,16 +166,14 @@
                       address cannot be reused for multiple random choices."
                     {:addr addr}))))
 
-(defn assoc-subtrace
+(defn assoc
   [^Trace t addr subt]
   (validate-empty! t addr)
   (->Trace (.-gf t)
            (.-args t)
-           (assoc (.-subtraces t) addr subt)
+           (core/assoc (.-subtraces t) addr subt)
            (.-retval t)))
 
 (defn merge-subtraces
   [^Trace t1 ^Trace t2]
-  (reduce-kv assoc-subtrace
-             t1
-             (.-subtraces t2)))
+  (reduce-kv assoc t1 (.-subtraces t2)))
