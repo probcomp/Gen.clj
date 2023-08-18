@@ -24,7 +24,3 @@
 (defprotocol Submaps
   :extend-via-metadata true
   (submaps [cm] "Returns an associative data structure mapping keys to submaps."))
-
-(defprotocol Leaf
-  :extend-via-metadata true
-  (leaf-value [cm] "Returns the value for"))

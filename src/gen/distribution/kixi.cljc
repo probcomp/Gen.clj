@@ -135,7 +135,7 @@
             :trace  (gf/simulate gf args)})
           ([gf args constraints]
            (assert (dynamic.choice-map/choice? constraints))
-           (let [retval      (choice-map/value constraints)
+           (let [retval      constraints
                  config      (apply args->config args)
                  kixi-dist   (f config)
                  kixi-sample (sample->kixi-sample retval)

@@ -7,23 +7,21 @@
 
 (deftest choice
   (is (dynamic.choice-map/choice? (dynamic.choice-map/choice nil)))
-  (is (dynamic.choice-map/choice? #gen/choice nil))
+  (is (dynamic.choice-map/choice? nil))
   (is (dynamic.choice-map/choice? (dynamic.choice-map/choice :x)))
-  (is (dynamic.choice-map/choice? #gen/choice :x))
+  (is (dynamic.choice-map/choice? :x))
   (is (dynamic.choice-map/choice? (dynamic.choice-map/choice [:x])))
-  (is (dynamic.choice-map/choice? #gen/choice [:x]))
+  (is (dynamic.choice-map/choice? [:x]))
   (is (dynamic.choice-map/choice? (dynamic.choice-map/choice {:x 0})))
-  (is (dynamic.choice-map/choice? #gen/choice {:x 0}))
-  (is (not (dynamic.choice-map/choice? nil)))
-  (is (not (dynamic.choice-map/choice? :x))))
+  (is (dynamic.choice-map/choice? {:x 0})))
 
 (deftest choice-map?
   (is (dynamic.choice-map/choice-map? #gen/choice-map {}))
   (is (not (dynamic.choice-map/choice-map? {}))))
 
 (deftest choice-map-value
-  (is (= nil (choice-map/value #gen/choice nil)))
-  (is (= :x (choice-map/value #gen/choice :x))))
+  (is (= nil (choice-map/value nil)))
+  (is (= :x (choice-map/value :x))))
 
 (deftest empty?
   (is (clojure/empty? (dynamic.choice-map/choice-map)))

@@ -49,7 +49,7 @@
      :trace (gf/simulate gf args)})
   (generate [gf args constraints]
     (assert (dynamic.choice-map/choice? constraints))
-    (let [retval (choice-map/value constraints)
+    (let [retval constraints
           distribution (apply constructor args)
           weight (logpdf distribution retval)
           trace (->Trace gf args retval weight)]

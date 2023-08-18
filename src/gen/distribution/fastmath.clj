@@ -81,7 +81,7 @@
                          :trace (gf/simulate gf args)})
                        ([gf args constraints]
                         (assert (dynamic.choice-map/choice? constraints))
-                        (let [retval (choice-map/value constraints)
+                        (let [retval constraints
                               config (apply args->config args)
                               fastmath-dist (random/distribution k config)
                               fastmath-sample (sample->fastmath-sample retval)

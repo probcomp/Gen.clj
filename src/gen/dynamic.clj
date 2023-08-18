@@ -10,57 +10,57 @@
 (defrecord DynamicDSLFunction [clojure-fn]
   IFn
   (invoke [_]
-    (dynamic.trace/without-tracing (clojure-fn)))
+    (dynamic.trace/untraced (clojure-fn)))
   (invoke [_ arg1]
-    (dynamic.trace/without-tracing (clojure-fn arg1)))
+    (dynamic.trace/untraced (clojure-fn arg1)))
   (invoke [_ arg1 arg2]
-    (dynamic.trace/without-tracing (clojure-fn arg1 arg2)))
+    (dynamic.trace/untraced (clojure-fn arg1 arg2)))
   (invoke [_ arg1 arg2 arg3]
-    (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3)))
+    (dynamic.trace/untraced (clojure-fn arg1 arg2 arg3)))
   (invoke [_ arg1 arg2 arg3 arg4]
-    (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3 arg4)))
+    (dynamic.trace/untraced (clojure-fn arg1 arg2 arg3 arg4)))
   (invoke [_ arg1 arg2 arg3 arg4 arg5]
-    (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3 arg4 arg5)))
+    (dynamic.trace/untraced (clojure-fn arg1 arg2 arg3 arg4 arg5)))
   (invoke [_ arg1 arg2 arg3 arg4 arg5 arg6]
-    (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6)))
+    (dynamic.trace/untraced (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6)))
   (invoke [_ arg1 arg2 arg3 arg4 arg5 arg6 arg7]
-    (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7)))
+    (dynamic.trace/untraced (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7)))
   (invoke [_ arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8]
-    (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8)))
+    (dynamic.trace/untraced (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8)))
   (invoke [_ arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9]
-    (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)))
+    (dynamic.trace/untraced (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)))
   (invoke [_ arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10]
-    (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10)))
+    (dynamic.trace/untraced (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10)))
   (invoke [_ arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11]
-    (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11)))
+    (dynamic.trace/untraced (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11)))
   (invoke [_ arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12]
-    (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12)))
+    (dynamic.trace/untraced (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12)))
   (invoke [_ arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13]
-    (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13)))
+    (dynamic.trace/untraced (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13)))
   (invoke [_ arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14]
-    (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14)))
+    (dynamic.trace/untraced (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14)))
   (invoke [_ arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15]
-    (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15)))
+    (dynamic.trace/untraced (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15)))
   (invoke [_ arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16]
-    (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16)))
+    (dynamic.trace/untraced (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16)))
   (invoke [_ arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16 arg17]
-    (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16 arg17)))
+    (dynamic.trace/untraced (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16 arg17)))
   (invoke [_ arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16 arg17 arg18]
-    (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16 arg17 arg18)))
+    (dynamic.trace/untraced (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16 arg17 arg18)))
   (invoke [_ arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16 arg17 arg18 s]
-    (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16 arg17 arg18 s)))
+    (dynamic.trace/untraced (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16 arg17 arg18 s)))
   (invoke [_ arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16 arg17 arg18 arg19 arg20]
-    (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16 arg17 arg18 arg19 arg20)))
+    (dynamic.trace/untraced (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16 arg17 arg18 arg19 arg20)))
   (invoke [_ arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16 arg17 arg18 arg19 arg20 args]
-    (dynamic.trace/without-tracing
+    (dynamic.trace/untraced
      (apply clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16 arg17 arg18 arg19 arg20 args)))
   (applyTo [_ arglist]
-    (dynamic.trace/without-tracing
+    (dynamic.trace/untraced
      (.applyTo ^IFn clojure-fn arglist)))
 
   gf/Simulate
   (simulate [gf args]
-    (let [trace (atom (dynamic.trace/trace gf args))]
+    (let [!trace (atom (dynamic.trace/trace gf args))]
       (binding [dynamic.trace/*splice*
                 (fn [gf args]
                   (apply (:clojure-fn gf) args))
@@ -68,11 +68,10 @@
                 dynamic.trace/*trace*
                 (fn [k gf args]
                   (let [subtrace (gf/simulate gf args)]
-                    (swap! trace dynamic.trace/assoc-subtrace k subtrace)
+                    (swap! !trace dynamic.trace/assoc-subtrace k subtrace)
                     (trace/retval subtrace)))]
-        (let [retval (apply clojure-fn args)]
-          (swap! trace dynamic.trace/set-retval! retval)
-          @trace))))
+        (let [v (apply clojure-fn args)]
+          (dynamic.trace/with-val @!trace v)))))
 
   gf/Generate
   (generate [gf args]
@@ -103,8 +102,7 @@
                     (trace/retval subtrace)))]
         (let [retval (apply clojure-fn args)
               trace (:trace @state)]
-          (dynamic.trace/set-retval! trace retval)
-          {:trace trace
+          {:trace (dynamic.trace/with-val trace retval)
            :weight (:weight @state)})))))
 
 (defn trace-form?
