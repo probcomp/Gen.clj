@@ -1,7 +1,6 @@
 (ns gen.distribution.kixi
   (:require [gen.choice-map :as choice-map]
             [gen.diff :as diff]
-            [gen.dynamic.choice-map :as dynamic.choice-map]
             [gen.generative-function :as gf]
             [gen.trace :as trace]
             [kixi.stats.distribution :as k]))
@@ -71,12 +70,12 @@
   ;;
   ;; NOTE I think it is only the `gf` argument, and that itself is handled by
   ;; protocols. So we can probably abstract this out.
-  (-> (cond (dynamic.choice-map/choice? constraints)
+  (-> (cond (choice-map/choice? constraints)
             (-> (gf/generate (trace/gf t) (trace/args t) constraints)
                 (update :weight - (trace/score t))
-                (assoc :discard (dynamic.choice-map/choice (trace/retval t))))
+                (assoc :discard (choice-map/choice (trace/retval t))))
 
-            (dynamic.choice-map/choice-map? constraints)
+            (choice-map/choice-map? constraints)
             (throw (ex-info "Expected a value at address but found a sub-assignment."
                             {:sub-assignment constraints}))
 
@@ -90,7 +89,7 @@
 
   trace/Choices
   (choices [_]
-    (dynamic.choice-map/choice retval))
+    (choice-map/choice retval))
 
   trace/GenFn
   (gf [_] gf)
@@ -134,7 +133,7 @@
            {:weight 0
             :trace  (gf/simulate gf args)})
           ([gf args constraints]
-           (assert (dynamic.choice-map/choice? constraints))
+           (assert (choice-map/choice? constraints))
            (let [retval      constraints
                  config      (apply args->config args)
                  kixi-dist   (f config)

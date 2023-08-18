@@ -442,26 +442,26 @@
 ;; where `:a` is always true and `:c` is always false. We first construct a
 ;; choice map containing these constraints:
 
-(require '[gen.dynamic.choice-map :as dynamic.choice-map]
+(require '[gen.choice-map :as choice-map]
          '[gen.choice-map :as choice-map])
 
 (def constraints
-  (dynamic.choice-map/choice-map
+  (choice-map/choice-map
    :a true
    :c false))
 
 #_
 (choice-map/submaps
- (dynamic.choice-map/choice-map
+ (choice-map/choice-map
   :a true
   :c false))
 
-;; The `gen.dynamic.choice-map/choice-map` constructor above took two elements
+;; The `gen.choice-map/choice-map` constructor above took two elements
 ;; of the form (address, value). This is equivalent to constructing an empty
 ;; choice map and then populating it:
 
 (def choices
-  (assoc (dynamic.choice-map/choice-map)
+  (assoc (choice-map/choice-map)
          :a true
          :c false))
 

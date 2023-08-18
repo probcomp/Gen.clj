@@ -3,7 +3,6 @@
             [gen]
             [gen.choice-map :as choice-map]
             [gen.diff :as diff]
-            [gen.dynamic.choice-map :as dynamic.choice-map]
             [gen.generative-function :as gf]
             [gen.trace :as trace]))
 
@@ -13,7 +12,7 @@
 (defn update-primitive-trace
   "Updates a trace representing a primitive distribution."
   [t constraints]
-  (cond (dynamic.choice-map/choice-map? constraints)
+  (cond (choice-map/choice-map? constraints)
         (throw
          (ex-info
           "Expected a value at address but found a sub-assignment."
@@ -29,7 +28,7 @@
             (gf/generate (trace/args t) constraints)
             (update :weight - (trace/score t))
             (assoc :change    diff/unknown-change
-                   :discard   (dynamic.choice-map/choice
+                   :discard   (choice-map/choice
                                (trace/retval t))))))
 
 (defrecord Trace [gf args retval score]
@@ -38,7 +37,7 @@
 
   trace/Choices
   (choices [_]
-    (dynamic.choice-map/choice retval))
+    (choice-map/choice retval))
 
   trace/GenFn
   (gf [_] gf)
@@ -80,7 +79,7 @@
                         {:weight 0.0
                          :trace (gf/simulate gf args)})
                        ([gf args constraints]
-                        (assert (dynamic.choice-map/choice? constraints))
+                        (assert (choice-map/choice? constraints))
                         (let [retval constraints
                               config (apply args->config args)
                               fastmath-dist (random/distribution k config)

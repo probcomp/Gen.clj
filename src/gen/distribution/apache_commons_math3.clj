@@ -1,11 +1,10 @@
 (ns gen.distribution.apache-commons-math3
-  (:import [org.apache.commons.math3.distribution BetaDistribution]
-           [org.apache.commons.math3.distribution GammaDistribution]
-           [org.apache.commons.math3.distribution AbstractRealDistribution])
   (:require [gen.choice-map :as choice-map]
-            [gen.dynamic.choice-map :as dynamic.choice-map]
             [gen.generative-function :as gf]
-            [gen.trace :as trace]))
+            [gen.trace :as trace])
+  (:import (org.apache.commons.math3.distribution BetaDistribution)
+           (org.apache.commons.math3.distribution GammaDistribution)
+           (org.apache.commons.math3.distribution AbstractRealDistribution)))
 
 (defprotocol LogPDF
   (logpdf [_ v]))
@@ -48,7 +47,7 @@
     {:weight 0
      :trace (gf/simulate gf args)})
   (generate [gf args constraints]
-    (assert (dynamic.choice-map/choice? constraints))
+    (assert (choice-map/choice? constraints))
     (let [retval constraints
           distribution (apply constructor args)
           weight (logpdf distribution retval)
@@ -62,7 +61,7 @@
 
   trace/Choices
   (choices [_]
-    (dynamic.choice-map/choice retval))
+    (choice-map/choice retval))
 
   trace/GenFn
   (gf [_] distribution)
@@ -76,14 +75,14 @@
 
   trace/Update
   (update [prev-trace constraints]
-    (cond (dynamic.choice-map/choice-map? constraints)
+    (cond (choice-map/choice-map? constraints)
           (throw (ex-info "Expected a value at address but found a sub-assignment."
                           {:sub-assignment constraints}))
 
-          (dynamic.choice-map/choice? constraints)
+          (choice-map/choice? constraints)
           (-> (gf/generate distribution (trace/args prev-trace) constraints)
               (update :weight - (trace/score prev-trace))
-              (assoc :discard (dynamic.choice-map/choice (trace/retval prev-trace))))
+              (assoc :discard (choice-map/choice (trace/retval prev-trace))))
 
           :else
           {:trace prev-trace

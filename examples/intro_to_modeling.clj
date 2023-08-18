@@ -946,7 +946,7 @@ math/PI
 ;; for complex models.
 
 ;; Hierarchical traces are represented using nested choice maps
-;; (`gen.dynamic.choice-map/ChoiceMap`). Hierarchical addresses can be accessed
+;; (`gen.choice-map/ChoiceMap`). Hierarchical addresses can be accessed
 ;; using `clojure.core` functions like `clojure.core/get-in`.
 
 (get-in bar-with-key-trace [:z :y])

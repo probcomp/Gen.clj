@@ -1,8 +1,10 @@
 (ns gen.trace
-  "Protocols that constitute the trace interface."
-  (:refer-clojure :exclude [update]))
+  "Protocols that constitute the trace interface.
 
-;; https://github.com/probcomp/Gen.jl/blob/master/src/gen_fn_interface.jl#L1
+  See [the
+  docs](https://github.com/probcomp/Gen.jl/blob/master/src/gen_fn_interface.jl#L1)
+  for more detail."
+  (:refer-clojure :exclude [update]))
 
 (defprotocol GenFn
   :extend-via-metadata true
@@ -44,7 +46,7 @@
 (defn update-primitive-trace
   "Updates a trace representing a primitive distribution."
   [t constraints]
-  (cond (dynamic.choice-map/choice-map? constraints)
+  (cond (choice-map/choice-map? constraints)
         (throw
          (ex-info
           "Expected a value at address but found a sub-assignment."
@@ -60,7 +62,7 @@
             (gf/generate (trace/args t) constraints)
             (update :weight - (trace/score t))
             (assoc :change    diff/unknown-change
-                   :discard   (dynamic.choice-map/choice
+                   :discard   (choice-map/choice
                                (trace/retval t))))))
 
 ;; this could work for all of the distributions?

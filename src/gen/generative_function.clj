@@ -1,6 +1,9 @@
-(ns gen.generative-function)
+(ns gen.generative-function
+  "Protocols constituting the generative function interface (GFI).
 
-;; https://www.gen.dev/docs/stable/ref/gfi/#Generative-function-interface-1
+  See [the
+  docs](https://www.gen.dev/docs/stable/ref/gfi/#Generative-function-interface-1)
+  for more detail.")
 
 (defprotocol Simulate
   :extend-via-metadata true
@@ -15,6 +18,8 @@
     "Returns a map with keys `:trace`, `:weight` and, optionally, `:discard`...
     of a generative function that is consistent with the given constraints on
     the random choices."))
+
+;; ## Not yet implemented
 
 #_
 (defprotocol Propose

@@ -1,7 +1,6 @@
 (ns gen.dynamic.trace
   (:require [clojure.set :as set]
             [gen.choice-map :as choice-map]
-            [gen.dynamic.choice-map :as dynamic.choice-map]
             [gen.generative-function :as gf]
             [gen.trace :as trace]))
 
@@ -81,7 +80,7 @@
 
   trace/Choices
   (choices [_]
-    (dynamic.choice-map/->ChoiceMap
+    (choice-map/->ChoiceMap
      (update-vals subtraces trace/choices)))
 
   trace/Score
@@ -133,7 +132,7 @@
   (let [gf    (trace/gf this)
         state (atom {:trace (trace gf (trace/args this))
                      :weight 0
-                     :discard (dynamic.choice-map/choice-map)})]
+                     :discard (choice-map/choice-map)})]
     (binding [*splice*
               (fn [_gf _args]
                 (throw (ex-info "Not yet implemented." {})))

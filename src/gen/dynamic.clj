@@ -67,6 +67,7 @@
 
                 dynamic.trace/*trace*
                 (fn [k gf args]
+                  ;; TODO check if a key already exists?
                   (let [subtrace (gf/simulate gf args)]
                     (swap! !trace dynamic.trace/assoc-subtrace k subtrace)
                     (trace/retval subtrace)))]
