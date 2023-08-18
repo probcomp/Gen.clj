@@ -123,11 +123,11 @@
 
 (defn ^:no-doc combine
   "combine by adding weights?"
-  [l k {:keys [trace weight discard]}]
+  [l k {:keys [trace weight discard] :as r}]
   (-> l
       (update :trace assoc-subtrace k trace)
       (update :weight + weight)
-      (cond-> discard (update :discard assoc k discard))))
+      (cond-> (contains? r :discard) (update :discard assoc k discard))))
 
 (defn update-trace [this constraints]
   (let [gf    (trace/gf this)
@@ -140,12 +140,12 @@
 
               *trace*
               (fn [k gf args]
-                (let [sub-ms (choice-map/submaps constraints)
+                (let [sub-ms        (choice-map/submaps constraints)
                       k-constraints (get sub-ms k)
-                      ret (if-let [prev-subtrace (get (.-subtraces ^Trace this) k)]
-                            ;; TODO why don't we use `gf` or `args`?
-                            (trace/update prev-subtrace k-constraints)
-                            (gf/generate gf args k-constraints))]
+                      ret           (if-let [prev-subtrace (get (.-subtraces ^Trace this) k)]
+                                      ;; TODO why don't we use `gf` or `args`?
+                                      (trace/update prev-subtrace k-constraints)
+                                      (gf/generate gf args k-constraints))]
                   (swap! state combine k ret)
                   (trace/retval (:trace ret))))]
       (let [retval (apply (:clojure-fn gf) (trace/args this))

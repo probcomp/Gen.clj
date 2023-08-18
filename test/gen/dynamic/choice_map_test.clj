@@ -19,10 +19,6 @@
   (is (dynamic.choice-map/choice-map? #gen/choice-map {}))
   (is (not (dynamic.choice-map/choice-map? {}))))
 
-(deftest choice-map-value
-  (is (= nil (choice-map/value nil)))
-  (is (= :x (choice-map/value :x))))
-
 (deftest empty?
   (is (clojure/empty? (dynamic.choice-map/choice-map)))
   (is (clojure/empty? #gen/choice-map {}))

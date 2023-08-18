@@ -69,7 +69,7 @@
 (defn choice-map
   "Returns a [[ChoiceMap]] built out of the supplied key-value pairs."
   [& {:as m}]
-  (->ChoiceMap m))
+  (->ChoiceMap (or m {})))
 
 (defn choice [x] x)
 
