@@ -158,17 +158,19 @@
          :weight  weight
          :discard (merge discard unvisited)}))))
 
+(defn validate-empty! [t addr]
+  (when (contains? t addr)
+    (throw (ex-info "Value or subtrace already present at address. The same
+                      address cannot be reused for multiple random choices."
+                    {:addr addr}))))
+
 (defn assoc-subtrace
   [^Trace t addr subt]
-  (let [subtraces (.-subtraces t)]
-    (when (contains? subtraces addr)
-      (throw (ex-info "Value or subtrace already present at address. The same
-                      address cannot be reused for multiple random choices."
-                      {:addr addr})))
-    (->Trace (.-gf t)
-             (.-args t)
-             (assoc subtraces addr subt)
-             (.-retval t))))
+  (validate-empty! t addr)
+  (->Trace (.-gf t)
+           (.-args t)
+           (assoc (.-subtraces t) addr subt)
+           (.-retval t)))
 
 (defn merge-subtraces
   [^Trace t1 ^Trace t2]
