@@ -96,6 +96,3 @@
 (def xs (range -5 6))
 (def y (line-model xs))
 (def trace (gf/simulate line-model [xs]))
-
-(prn y)
-(prn trace)

@@ -12,8 +12,9 @@
   (generate
     [gf args]
     [gf args constraints]
-    "Returns a trace of a generative function that is consistent with the given
-    constraints on the random choices."))
+    "Returns a map with keys `:trace`, `:weight` and, optionally, `:discard`...
+    of a generative function that is consistent with the given constraints on
+    the random choices."))
 
 #_
 (defprotocol Propose

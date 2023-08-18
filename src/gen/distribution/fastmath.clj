@@ -10,6 +10,28 @@
 ;; https://generateme.github.io/fastmath/fastmath.random.html#var-distribution
 ;; https://www.gen.dev/docs/stable/ref/distributions/#Probability-Distributions-1
 
+(defn update-primitive-trace
+  "Updates a trace representing a primitive distribution."
+  [t constraints]
+  (cond (dynamic.choice-map/choice-map? constraints)
+        (throw
+         (ex-info
+          "Expected a value at address but found a sub-assignment."
+          {:sub-assignment constraints}))
+
+        (nil? constraints)
+        {:trace t
+         :weight 0.0
+         :change diff/unknown-change}
+
+        :else
+        (-> (trace/gf t)
+            (gf/generate (trace/args t) constraints)
+            (update :weight - (trace/score t))
+            (assoc :change    diff/unknown-change
+                   :discard   (dynamic.choice-map/choice
+                               (trace/retval t))))))
+
 (defrecord Trace [gf args retval score]
   trace/Args
   (args [_] args)
@@ -25,24 +47,11 @@
   (retval [_] retval)
 
   trace/Score
-  (score [_]
-    score)
+  (score [_] score)
 
   trace/Update
-  (update [prev-trace constraints]
-    (-> (cond (dynamic.choice-map/choice? constraints)
-              (-> (gf/generate gf (trace/args prev-trace) constraints)
-                  (update :weight - (trace/score prev-trace))
-                  (assoc :discard (dynamic.choice-map/choice (trace/retval prev-trace))))
-
-              (dynamic.choice-map/choice-map? constraints)
-              (throw (ex-info "Expected a value at address but found a sub-assignment."
-                              {:sub-assignment constraints}))
-
-              :else
-              {:trace prev-trace
-               :weight 0}) ; (- (logpdf (trace/retval prev-trace)) (trace/score prev-trace))
-        (assoc :change diff/unknown-change))))
+  (update [this constraints]
+    (update-primitive-trace this constraints)))
 
 (defn trace
   "Creates a new fastmath distribution trace."
@@ -68,7 +77,7 @@
                          (trace gf args retval score)))
         `gf/generate (fn
                        ([gf args]
-                        {:weight 0
+                        {:weight 0.0
                          :trace (gf/simulate gf args)})
                        ([gf args constraints]
                         (assert (dynamic.choice-map/choice? constraints))
