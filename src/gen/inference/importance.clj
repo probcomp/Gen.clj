@@ -1,6 +1,6 @@
 (ns gen.inference.importance
   (:require [clojure.math :as math]
-            [gen.distribution.fastmath :as dist]
+            [gen.distribution.commons-math :as dist]
             [gen.generative-function :as gf]))
 
 ;; This implementation comes from `fastmath.core`, ported here for cljc

@@ -1,11 +1,7 @@
 {:paths ["src" "resources"]
 
  :deps
- {generateme/fastmath
-  {:mvn/version "2.2.1"
-   ;; https://github.com/generateme/fastmath#mkl
-   :exclusions [com.github.haifengl/smile-mkl org.bytedeco/openblas]}
-  org.apache.commons/commons-math3 {:mvn/version "3.6.1"}
+ {org.apache.commons/commons-math3 {:mvn/version "3.6.1"}
   org.clojure/clojure {:mvn/version "1.11.1"}}
 
  :aliases
