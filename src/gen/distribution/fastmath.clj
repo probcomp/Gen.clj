@@ -12,24 +12,30 @@
 (defn update-primitive-trace
   "Updates a trace representing a primitive distribution."
   [t constraints]
-  (cond (choice-map/choice-map? constraints)
-        (throw
-         (ex-info
-          "Expected a value at address but found a sub-assignment."
-          {:sub-assignment constraints}))
+  (cond (choice-map/choice? constraints)
+        (-> (trace/gf t)
+            (gf/generate (trace/args t) constraints)
+            (update :weight - (trace/score t))
+            (assoc :change    diff/unknown-change
+                   :discard   (choice-map/choice
+                               (trace/retval t))))
 
         (nil? constraints)
         {:trace t
          :weight 0.0
          :change diff/unknown-change}
 
+        (choice-map/choice-map? constraints)
+        (throw
+         (ex-info
+          "Expected a value at address but found a sub-assignment."
+          {:sub-assignment constraints}))
+
         :else
-        (-> (trace/gf t)
-            (gf/generate (trace/args t) constraints)
-            (update :weight - (trace/score t))
-            (assoc :change    diff/unknown-change
-                   :discard   (choice-map/choice
-                               (trace/retval t))))))
+        (throw
+         (ex-info
+          "non-nil, non-Choice constraint not allowed."
+          {:sub-assignment constraints}))))
 
 (defrecord Trace [gf args retval score]
   trace/Args
@@ -80,7 +86,7 @@
                          :trace (gf/simulate gf args)})
                        ([gf args constraints]
                         (assert (choice-map/choice? constraints))
-                        (let [retval constraints
+                        (let [retval (choice-map/unwrap constraints)
                               config (apply args->config args)
                               fastmath-dist (random/distribution k config)
                               fastmath-sample (sample->fastmath-sample retval)

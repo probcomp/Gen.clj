@@ -142,6 +142,8 @@
               *trace*
               (fn [k gf args]
                 (let [sub-ms        (choice-map/submaps constraints)
+                      ;; NOTE goal is to get a NON-unwrapped here. Maybe add to
+                      ;; choice-map.
                       k-constraints (get sub-ms k)
                       ret           (if-let [prev-subtrace (get (.-subtraces ^Trace this) k)]
                                       ;; TODO why don't we use `gf` or `args`?

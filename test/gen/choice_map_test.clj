@@ -6,13 +6,13 @@
 
 (deftest choice
   (is (choice-map/choice? (choice-map/choice nil)))
-  (is (choice-map/choice? nil))
+  (is (choice-map/choice? #gen/choice nil))
   (is (choice-map/choice? (choice-map/choice :x)))
-  (is (choice-map/choice? :x))
+  (is (choice-map/choice? #gen/choice :x))
   (is (choice-map/choice? (choice-map/choice [:x])))
-  (is (choice-map/choice? [:x]))
+  (is (choice-map/choice? #gen/choice [:x]))
   (is (choice-map/choice? (choice-map/choice {:x 0})))
-  (is (choice-map/choice? {:x 0})))
+  (is (choice-map/choice? #gen/choice {:x 0})))
 
 (deftest choice-map?
   (is (choice-map/choice-map? #gen/choice-map {}))

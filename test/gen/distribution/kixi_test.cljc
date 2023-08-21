@@ -2,7 +2,6 @@
   (:require [clojure.math :as math]
             [clojure.test :refer [deftest is]]
             [gen]
-            [gen.choice-map]
             [gen.diff :as diff]
             [gen.distribution.kixi :as d]
             [gen.dynamic :refer [gen]]
@@ -29,40 +28,40 @@
 
 (deftest bernoulli-update-weight
   (is (= 1.0
-         (-> (gf/generate d/bernoulli [0.3] true)
+         (-> (gf/generate d/bernoulli [0.3] #gen/choice true)
              (:trace)
-             (trace/update true)
+             (trace/update #gen/choice true)
              (:weight)
              (math/exp))))
   (is (= (/ 0.7 0.3)
-         (-> (gf/generate d/bernoulli [0.3] true)
+         (-> (gf/generate d/bernoulli [0.3] #gen/choice true)
              (:trace)
-             (trace/update false)
+             (trace/update #gen/choice false)
              (:weight)
              (math/exp)))))
 
 (deftest bernoulli-update-discard
   (is (nil?
-       (-> (gf/generate d/bernoulli [0.3] true)
+       (-> (gf/generate d/bernoulli [0.3] #gen/choice true)
            (:trace)
            (trace/update nil)
            (:discard))))
-  (is (= true
-         (-> (gf/generate d/bernoulli [0.3] true)
+  (is (= #gen/choice true
+         (-> (gf/generate d/bernoulli [0.3] #gen/choice true)
              (:trace)
-             (trace/update false)
+             (trace/update #gen/choice false)
              (:discard)))))
 
 (deftest bernoulli-update-change
   (is (= diff/unknown-change
-         (-> (gf/generate d/bernoulli [0.3] true)
+         (-> (gf/generate d/bernoulli [0.3] #gen/choice true)
              (:trace)
              (trace/update nil)
              (:change))))
   (is (= diff/unknown-change
-         (-> (gf/generate d/bernoulli [0.3] true)
+         (-> (gf/generate d/bernoulli [0.3] #gen/choice true)
              (:trace)
-             (trace/update false)
+             (trace/update #gen/choice false)
              (:change)))))
 
 (def line-model
