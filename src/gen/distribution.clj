@@ -11,8 +11,8 @@
 (defprotocol Sample
   (sample [_]))
 
-;; TODO: extend the GFI directly to the distributions.
-
+;; TODO: extend the GFI directly to the distributions... we can't really do this
+;; because we have to take args, and at that point we already have an instance.
 (defrecord Distribution [ctor encode decode]
   IFn
   (invoke [_]
