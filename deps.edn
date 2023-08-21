@@ -31,6 +31,13 @@
    :exec-fn cognitect.test-runner.api/test
    :exec-args ["test"]}
 
+  :coverage
+  ;; Invoke with clj -M:test:coverage <args>
+  {:main-opts ["-m" "cloverage.coverage"
+               "-p" "src"
+               "-s" "test"]
+   :extra-deps {cloverage/cloverage {:mvn/version "1.2.4"}}}
+
   :build
   {:deps
    {io.github.clojure/tools.build {:git/tag "v0.9.4" :git/sha "76b78fe"}
