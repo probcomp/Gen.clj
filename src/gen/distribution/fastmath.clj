@@ -1,99 +1,20 @@
 (ns gen.distribution.fastmath
   (:require [fastmath.random :as random]
-            [gen]
-            [gen.choice-map :as choice-map]
-            [gen.diff :as diff]
-            [gen.generative-function :as gf]
-            [gen.trace :as trace]))
-
-;; https://generateme.github.io/fastmath/fastmath.random.html#var-distribution
-;; https://www.gen.dev/docs/stable/ref/distributions/#Probability-Distributions-1
-
-(defn update-primitive-trace
-  "Updates a trace representing a primitive distribution."
-  [t constraints]
-  (cond (choice-map/choice? constraints)
-        (-> (trace/gf t)
-            (gf/generate (trace/args t) constraints)
-            (update :weight - (trace/score t))
-            (assoc :change    diff/unknown-change
-                   :discard   (choice-map/choice
-                               (trace/retval t))))
-
-        (nil? constraints)
-        {:trace t
-         :weight 0.0
-         :change diff/unknown-change}
-
-        (map? constraints)
-        (throw
-         (ex-info
-          "Expected a value at address but found a sub-assignment."
-          {:sub-assignment constraints}))
-
-        :else
-        (throw
-         (ex-info
-          "non-nil, non-Choice constraint not allowed."
-          {:sub-assignment constraints}))))
-
-(defrecord Trace [gf args retval score]
-  trace/Args
-  (args [_] args)
-
-  trace/Choices
-  (choices [_]
-    (choice-map/choice retval))
-
-  trace/GenFn
-  (gf [_] gf)
-
-  trace/RetVal
-  (retval [_] retval)
-
-  trace/Score
-  (score [_] score)
-
-  trace/Update
-  (update [this constraints]
-    (update-primitive-trace this constraints)))
-
-(defn trace
-  "Creates a new fastmath distribution trace."
-  [gf args retval score]
-  (->Trace gf args retval score))
+            [gen.distribution :as d]))
 
 (defn fastmath-distribution
   "Creates a new fastmath distribution."
   ([k args->config]
    (fastmath-distribution k args->config identity identity))
   ([k args->config fastmath-sample->sample sample->fastmath-sample]
-   (let [args->dist (fn [& args]
-                      (random/distribution k (apply args->config args)))
-         args->fastmath-sample (fn [& args]
-                                 (random/sample (apply args->dist args)))]
-     (with-meta (comp fastmath-sample->sample args->fastmath-sample)
-       {`gf/simulate (fn [gf args]
-                       (let [config (apply args->config args)
-                             fastmath-dist (random/distribution k config)
-                             fastmath-sample (apply args->fastmath-sample args)
-                             retval (fastmath-sample->sample fastmath-sample)
-                             score (random/log-likelihood fastmath-dist [fastmath-sample])]
-                         (trace gf args retval score)))
-        `gf/generate (fn
-                       ([gf args]
-                        {:weight 0.0
-                         :trace (gf/simulate gf args)})
-                       ([gf args constraints]
-                        (assert (choice-map/choice? constraints))
-                        (let [retval (choice-map/unwrap constraints)
-                              config (apply args->config args)
-                              fastmath-dist (random/distribution k config)
-                              fastmath-sample (sample->fastmath-sample retval)
-                              weight (random/log-likelihood fastmath-dist [fastmath-sample])
-                              trace (trace gf args retval weight)]
-                          {:weight weight
-                           :trace trace})))}))))
+   (d/dist->gen-fn
+    :ctor (fn [& args]
+            (random/distribution k (apply args->config args)))
+    :sample-fn random/sample
+    :score-fn (fn [dist sample]
+                (random/log-likelihood dist [sample]))
+    :encode sample->fastmath-sample
+    :decode fastmath-sample->sample)))
 
 (def bernoulli
   "Samples a Bool value which is true with given probability."

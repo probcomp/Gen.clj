@@ -1,7 +1,6 @@
 (ns gen.distribution.fastmath-test
   (:require [clojure.math :as math]
             [clojure.test :refer [deftest is]]
-            [gen.choice-map :as cm]
             [gen.diff :as diff]
             [gen.distribution.fastmath :as d]
             [gen.generative-function :as gf]

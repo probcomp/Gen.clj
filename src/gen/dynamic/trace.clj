@@ -131,7 +131,7 @@
 
 ;; TODO attempt at a leaf trace.
 
-(defrecord PrimitiveTrace [gf args retval choices score]
+(defrecord PrimitiveTrace [gf args retval score]
   trace/GenFn
   (gf [_] gf)
 
@@ -142,7 +142,7 @@
   (retval [_] retval)
 
   trace/Choices
-  (choices [_] choices)
+  (choices [_] (cm/choice retval))
 
   trace/Score
   (score [_] score)

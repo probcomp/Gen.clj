@@ -1,8 +1,5 @@
 (ns gen.distribution.kixi
-  (:require [gen.choice-map :as choice-map]
-            [gen.diff :as diff]
-            [gen.generative-function :as gf]
-            [gen.trace :as trace]
+  (:require [gen.distribution :as d]
             [kixi.stats.distribution :as k]))
 
 (defprotocol IScore
@@ -65,119 +62,34 @@
                  (* 2 (Math/log sigma))
                  (/ v-mu-sq variance))))))
 
-(defn trace-update [t constraints]
-  ;; TODO what is different here between this and the commons math one?
-  ;;
-  ;; NOTE I think it is only the `gf` argument, and that itself is handled by
-  ;; protocols. So we can probably abstract this out.
-  (-> (cond (choice-map/choice? constraints)
-            (-> (gf/generate (trace/gf t) (trace/args t) constraints)
-                (update :weight - (trace/score t))
-                (assoc :discard (choice-map/choice (trace/retval t))))
-
-            (map? constraints)
-            (throw (ex-info "Expected a value at address but found a sub-assignment."
-                            {:sub-assignment constraints}))
-
-            ;; (- (logpdf (trace/retval prev-trace)) (trace/score prev-trace))
-            :else {:trace t :weight 0.0})
-      (assoc :change diff/unknown-change)))
-
-(defrecord Trace [gf args retval score]
-  trace/Args
-  (args [_] args)
-
-  trace/Choices
-  (choices [_]
-    (choice-map/choice retval))
-
-  trace/GenFn
-  (gf [_] gf)
-
-  trace/RetVal
-  (retval [_] retval)
-
-  trace/Score
-  (score [_]
-    score)
-
-  trace/Update
-  (update [this constraints]
-    (trace-update this constraints)))
-
-(defn trace
-  "Creates a new kixi distribution trace."
-  [gf args retval score]
-  (->Trace gf args retval score))
-
 (defn kixi-distribution
-  ([f args->config]
-   (kixi-distribution f args->config identity identity))
-  ([f args->config kixi-sample->sample sample->kixi-sample]
-   (let [args->dist        (fn [& args]
-                             (f (apply args->config args)))
-         args->kixi-sample (fn [& args]
-                             (k/draw (apply args->dist args)))]
-     (with-meta (comp kixi-sample->sample args->kixi-sample)
-       {`gf/simulate
-        (fn [gf args]
-          (let [config      (apply args->config args)
-                kixi-dist   (f config)
-                kixi-sample (apply args->kixi-sample args)
-                retval      (kixi-sample->sample kixi-sample)
-                score       (score kixi-dist kixi-sample)]
-            (trace gf args retval score)))
-        `gf/generate
-        (fn
-          ([gf args]
-           {:weight 0
-            :trace  (gf/simulate gf args)})
-          ([gf args constraints]
-           (assert (choice-map/choice? constraints))
-           (let [retval      (choice-map/unwrap constraints)
-                 config      (apply args->config args)
-                 kixi-dist   (f config)
-                 kixi-sample (sample->kixi-sample retval)
-                 weight      (score kixi-dist kixi-sample)
-                 trace       (trace gf args retval weight)]
-             {:weight weight
-              :trace  trace})))}))))
-
-(defn primitive [f]
-  (fn [& xs]
-    (let [dist (apply f xs)]
-      (k/draw dist))))
-
-;; fastmath.random> (lpdf (distribution :binomial {:trials 12 :p 0.25}) 6)
-;; -3.2151465297883446
-
-;; fastmath.random> (lpdf (distribution :bernoulli {:p 0.25}) 1)
-;; -1.3862943611198906
+  ([f]
+   (kixi-distribution f identity identity))
+  ([f kixi-sample->sample sample->kixi-sample]
+   (d/dist->gen-fn
+    :ctor f
+    :sample-fn k/draw
+    :score-fn score
+    :encode sample->kixi-sample
+    :decode kixi-sample->sample)))
 
 (def bernoulli
   (kixi-distribution
-   k/bernoulli
    (fn
-     ([] {:p 0.5})
-     ([p] {:p p}))))
+     ([] (k/bernoulli {:p 0.5}))
+     ([p] (k/bernoulli {:p p})))))
 
 (def normal
   (kixi-distribution
-   k/normal
    (fn [mu std]
-     {:mu mu
-      :sd std})))
+     (k/normal {:mu mu :sd std}))))
 
 (def uniform
   (kixi-distribution
-   k/uniform
    (fn [low high]
-     {:a low
-      :b high})))
+     (k/uniform {:a low :b high}))))
 
 (def gamma
   (kixi-distribution
-   k/gamma
    (fn [shape scale]
-     {:shape shape
-      :scale scale})))
+     (k/gamma {:shape shape :scale scale}))))

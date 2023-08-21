@@ -1,7 +1,5 @@
 (ns gen.dynamic
   (:require [clojure.walk :as walk]
-            [gen]
-            [gen.choice-map :as choice-map]
             [gen.dynamic.trace :as dynamic.trace]
             [gen.generative-function :as gf]
             [gen.trace :as trace])
