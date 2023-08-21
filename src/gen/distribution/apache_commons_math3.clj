@@ -75,7 +75,7 @@
 
   trace/Update
   (update [prev-trace constraints]
-    (cond (choice-map/choice-map? constraints)
+    (cond (map? constraints)
           (throw (ex-info "Expected a value at address but found a sub-assignment."
                           {:sub-assignment constraints}))
 
@@ -85,6 +85,7 @@
               (assoc :discard (choice-map/choice (trace/retval prev-trace))))
 
           :else
+          ;; unchanged? nil?
           {:trace prev-trace
            :weight (let [distribution (apply (.-constructor distribution)
                                              (trace/args prev-trace))]

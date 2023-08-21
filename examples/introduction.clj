@@ -442,30 +442,22 @@
 ;; where `:a` is always true and `:c` is always false. We first construct a
 ;; choice map containing these constraints:
 
-(require '[gen.choice-map :as choice-map]
-         '[gen.choice-map :as choice-map])
+(require '[gen.choice-map :as choice-map])
 
 (def constraints
-  (choice-map/choice-map
+  (choice-map/make
    :a true
    :c false))
 
-#_
-(choice-map/submaps
- (choice-map/make
-  :a true
-  :c false))
-
 ;; The `gen.choice-map/make` constructor above took two elements of the
-;; form (address, value). This is equivalent to constructing an empty choice map
-;; and then populating it:
+;; form (address, value). This is equivalent to populating a map with `choice`
+;; values:
 
 (def choices
-  (assoc choice-map/EMPTY
-         :a true
-         :c false))
+  {:a (choice-map/choice true)
+   :c (choice-map/choice false)})
 
-(choice-map/submaps choices)
+choices
 
 ;; Then, we pass the constraints as the third argument to
 ;; `gen.generative-function/generate`, after the function itself and the

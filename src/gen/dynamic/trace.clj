@@ -2,7 +2,7 @@
   (:refer-clojure :exclude [assoc])
   (:require [clojure.core :as core]
             [clojure.set :as set]
-            [gen.choice-map :as choice-map]
+            [gen.choice-map :as cm]
             [gen.generative-function :as gf]
             [gen.trace :as trace]))
 
@@ -59,7 +59,7 @@
   (valIterator [this]
     (.iterator
      ^java.lang.Iterable
-     (vals (trace/choices this))))
+     (map cm/unwrap (vals (trace/choices this)))))
 
   clojure.lang.Seqable
   (seq [this]
@@ -82,7 +82,9 @@
 
   trace/Choices
   (choices [_]
-    (choice-map/->ChoiceMap
+    ;; NOTE if you call `choices` on a trace you do NOT get a map of
+    ;; constraints! you get a map of choices.
+    (cm/unwrap
      (update-vals subtraces trace/choices)))
 
   trace/Score
@@ -134,21 +136,18 @@
   (let [gf    (trace/gf this)
         state (atom {:trace (trace gf (trace/args this))
                      :weight 0
-                     :discard choice-map/EMPTY})]
+                     :discard {}})]
     (binding [*splice*
               (fn [_gf _args]
                 (throw (ex-info "Not yet implemented." {})))
 
               *trace*
               (fn [k gf args]
-                (let [sub-ms        (choice-map/submaps constraints)
-                      ;; NOTE goal is to get a NON-unwrapped here. Maybe add to
-                      ;; choice-map.
-                      k-constraints (get sub-ms k)
-                      ret           (if-let [prev-subtrace (get (.-subtraces ^Trace this) k)]
-                                      ;; TODO why don't we use `gf` or `args`?
-                                      (trace/update prev-subtrace k-constraints)
-                                      (gf/generate gf args k-constraints))]
+                (let [k-constraints (get constraints k)
+                      ret (if-let [prev-subtrace (get (.-subtraces ^Trace this) k)]
+                            ;; TODO why don't we use `gf` or `args`?
+                            (trace/update prev-subtrace k-constraints)
+                            (gf/generate gf args k-constraints))]
                   (swap! state combine k ret)
                   (trace/retval (:trace ret))))]
       (let [retval (apply (:clojure-fn gf) (trace/args this))

@@ -75,7 +75,7 @@
                 (update :weight - (trace/score t))
                 (assoc :discard (choice-map/choice (trace/retval t))))
 
-            (choice-map/choice-map? constraints)
+            (map? constraints)
             (throw (ex-info "Expected a value at address but found a sub-assignment."
                             {:sub-assignment constraints}))
 

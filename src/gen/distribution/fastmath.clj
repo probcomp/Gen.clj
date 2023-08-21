@@ -25,7 +25,7 @@
          :weight 0.0
          :change diff/unknown-change}
 
-        (choice-map/choice-map? constraints)
+        (map? constraints)
         (throw
          (ex-info
           "Expected a value at address but found a sub-assignment."

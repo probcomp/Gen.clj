@@ -46,7 +46,7 @@
 (defn update-primitive-trace
   "Updates a trace representing a primitive distribution."
   [t constraints]
-  (cond (choice-map/choice-map? constraints)
+  (cond (map? constraints)
         (throw
          (ex-info
           "Expected a value at address but found a sub-assignment."

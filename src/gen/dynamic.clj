@@ -94,10 +94,7 @@
                 (fn [k gf args]
                   (dynamic.trace/validate-empty! (:trace @state) k)
                   (let [{subtrace :trace weight :weight}
-                        ;; TODO this is another spot where the false/nil
-                        ;; distinction is going to bite us.
-                        (if-let [constraints (-> (choice-map/submaps constraints)
-                                                 (get k))]
+                        (if-let [constraints (get constraints k)]
                           (gf/generate gf args constraints)
                           (gf/generate gf args))]
                     (swap! state update :trace dynamic.trace/assoc k subtrace)
