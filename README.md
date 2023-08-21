@@ -3,6 +3,8 @@
 <div align="center">
 
 [![Build Status][build-status]][build-status-url]
+[![License][license]][license-url]
+[![Codecov branch][codecov]][codecov-url]
 [![Linter][linter]][linter-url]
 ![Stability: Experimental][experimental-badge]
 
@@ -110,6 +112,8 @@ Distributed under the [Apache 2.0](LICENSE) license. See [LICENSE](LICENSE).
 [build-status-url]: https://github.com/InferenceQL/gen.clj/actions/workflows/tests.yaml?query=branch%3Amain
 [build-status]: https://github.com/InferenceQL/gen.clj/workflows/tests/badge.svg?branch=main
 [clerk-url]: https://github.com/nextjournal/clerk
+[codecov-url]: https://codecov.io/github/inferenceql/gen.clj
+[codecov]: https://img.shields.io/codecov/c/github/inferenceql/gen.clj/main.svg?maxAge=3600
 [experimental-badge]: https://img.shields.io/badge/stability-experimental-orange.svg
 [gen-clj-url]: https://github.clerk.garden/inferenceql/gen.clj
 [license-url]: LICENSE
