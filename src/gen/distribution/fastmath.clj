@@ -1,5 +1,6 @@
 (ns gen.distribution.fastmath
   (:require [fastmath.random :as random]
+            [gen.distribution.apache-commons-math3]
             [gen.distribution :as d]))
 
 (defn fastmath-distribution
@@ -8,13 +9,10 @@
    (fastmath-distribution k args->config identity identity))
   ([k args->config fastmath-sample->sample sample->fastmath-sample]
    (d/dist->gen-fn
-    :ctor (fn [& args]
-            (random/distribution k (apply args->config args)))
-    :sample-fn random/sample
-    :score-fn (fn [dist sample]
-                (random/log-likelihood dist [sample]))
-    :encode sample->fastmath-sample
-    :decode fastmath-sample->sample)))
+    (fn [& args]
+      (random/distribution k (apply args->config args)))
+    sample->fastmath-sample
+    fastmath-sample->sample)))
 
 (def bernoulli
   "Samples a Bool value which is true with given probability."
@@ -23,7 +21,7 @@
    (fn
      ([] {:p 0.5})
      ([p] {:p p}))
-   (fn [^long n]
+   (fn [n]
      (case n
        0 false
        1 true))

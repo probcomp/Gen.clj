@@ -2,10 +2,6 @@
   (:require [gen.distribution :as d]
             [kixi.stats.distribution :as k]))
 
-(defprotocol IScore
-  (score [_ v]
-    "Log-likelihood of observing the value `v` given the distribution `this`."))
-
 (def log-2pi (Math/log (* 2 Math/PI)))
 
 (def gamma-coefficients
@@ -27,32 +23,47 @@
                         gamma-coefficients)]
     (+ (- tmp) (Math/log (* 2.5066282746310005 ser)))))
 
-(extend-protocol IScore
-  kixi.stats.distribution.Bernoulli
-  (score [this v]
+(extend-type kixi.stats.distribution.Bernoulli
+  d/Sample
+  (sample [this] (k/draw this))
+
+  d/LogPDF
+  (logpdf [this v]
     (let [p (.-p this)]
       (Math/log
-       (if v p (- 1.0 p)))))
+       (if v p (- 1.0 p))))))
 
-  kixi.stats.distribution.Uniform
-  (score [this v]
+(extend-type kixi.stats.distribution.Uniform
+  d/Sample
+  (sample [this] (k/draw this))
+
+  d/LogPDF
+  (logpdf [this v]
     (let [a (.-a this)
           b (.-b this)]
       (if (or (< v a) (> v b))
         (- ##Inf)
-        (- (Math/log (- b a))))))
+        (- (Math/log (- b a)))))))
 
-  kixi.stats.distribution.Gamma
-  (score [this v]
+(extend-type kixi.stats.distribution.Gamma
+  d/Sample
+  (sample [this] (k/draw this))
+
+  d/LogPDF
+  (logpdf [this v]
     (let [shape (.-shape this)
           scale (.-scale this)]
       (- (* (dec shape) (Math/log v))
          (/ v scale)
          (log-gamma shape)
-         (* shape (Math/log scale)))))
+         (* shape (Math/log scale))))))
 
-  kixi.stats.distribution.Normal
-  (score [this v]
+(extend-type kixi.stats.distribution.Normal
+  d/Sample
+  (sample [this] (k/draw this))
+
+  d/LogPDF
+  (logpdf [this v]
     (let [mu       (.-mu this)
           v-mu     (- v mu)
           v-mu-sq  (* v-mu v-mu)
@@ -64,14 +75,12 @@
 
 (defn kixi-distribution
   ([f]
-   (kixi-distribution f identity identity))
+   (d/dist->gen-fn f))
   ([f kixi-sample->sample sample->kixi-sample]
    (d/dist->gen-fn
-    :ctor f
-    :sample-fn k/draw
-    :score-fn score
-    :encode sample->kixi-sample
-    :decode kixi-sample->sample)))
+    f
+    sample->kixi-sample
+    kixi-sample->sample)))
 
 (def bernoulli
   (kixi-distribution
