@@ -1,8 +1,8 @@
-(ns gen.distribution.fastmath-test
+(ns gen.distribution.commons-math-test
   (:require [clojure.math :as math]
             [clojure.test :refer [deftest is]]
             [gen.diff :as diff]
-            [gen.distribution.fastmath :as d]
+            [gen.distribution.commons-math :as d]
             [gen.generative-function :as gf]
             [gen.trace :as trace]))
 

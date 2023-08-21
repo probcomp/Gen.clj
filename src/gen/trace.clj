@@ -38,13 +38,13 @@
 (defprotocol Update
   (update
     [trace constraints]
-    "Shorthand variant of `gen.trace/update` which assumes the arguments are
-    unchanged."
-
     [trace args argdiffs constraints]
     "Updates a trace by changing the arguments and / or providing new values for
     some existing random choice(s) and values for some newly introduced random
-    choice(s)."))
+    choice(s).
+
+    The 2-arity version is a shorthand variant which assumes the arguments are
+    unchanged."))
 
 #_
 (defprotocol Regenerate

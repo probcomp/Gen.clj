@@ -33,8 +33,6 @@
     (choice-map/value x)
     x))
 
-(declare ->map)
-
 (deftype ChoiceMap [m]
   choice-map/Submaps
   (submaps [_] m)
@@ -91,30 +89,17 @@
   Iterable
   (iterator [this] (.iterator ^Iterable (.seq this))))
 
-(defn ^:no-doc ->map [^ChoiceMap cm]
-  (letfn [(inner [m]
-            (reduce-kv
-             (fn [acc k v]
-               (cond (instance? ChoiceMap v)
-                     (assoc acc k (inner (.-m ^ChoiceMap v)))
-
-                     (instance? Choice v)
-                     (let [choice (choice-map/value v)]
-                       (if (map? choice)
-                         (assoc acc k (inner choice))
-                         (assoc acc k choice)))
-
-                     :else
-                     (throw (ex-info
-                             "Error converting choice map. Invalid choice map."
-                             {:parent cm :key k :value v}))))
-             {}
-             m))]
-    (inner (.-m cm))))
+(defn unwrap
+  "If `m` is a [[Choice]] or [[ChoiceMap]], returns `m` stripped of its wrappers.
+  Else, returns `m`"
+  [m]
+  (cond (choice? m) (:choice m)
+        (map? m)    (update-vals m unwrap)
+        :else m))
 
 (defmethod print-method ChoiceMap [^ChoiceMap cm ^java.io.Writer w]
   (.write w "#gen/choice-map ")
-  (print-method (->map cm) w))
+  (print-method (unwrap cm) w))
 
 (defn choice-map
   [& {:as m}]
