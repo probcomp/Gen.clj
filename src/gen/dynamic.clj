@@ -96,48 +96,32 @@
           state (atom {:trace (dynamic.trace/trace gf (trace/args prev-trace))
                        :weight 0
                        :discard (dynamic.choice-map/choice-map)})]
-      (binding [dynamic.trace/*splice* (fn [k gf args]
-                                         (let [{subtrace :trace
-                                                weight :weight
-                                                discard :discard}
-                                               (if-let [prev-subtrace (get (.-subtraces prev-trace) k)]
-                                                 (let [{new-subtrace :trace
-                                                        new-weight :weight
-                                                        discard :discard}
-                                                       (trace/update prev-subtrace
-                                                                     (get (choice-map/submaps constraints)
-                                                                          k))]
-                                                   {:trace new-subtrace
-                                                    :weight new-weight
-                                                    :discard discard})
-                                                 (gf/generate gf args (get (choice-map/submaps constraints)
-                                                                           k)))]
-                                           (swap! state update :trace merge subtrace)
-                                           (swap! state update :weight + weight)
-                                           (when discard
-                                             (swap! state update :discard assoc k discard))
-                                           (trace/retval subtrace)))
-                dynamic.trace/*trace* (fn [k gf args]
-                                        (let [{subtrace :trace
-                                               weight :weight
-                                               discard :discard}
-                                              (if-let [prev-subtrace (get (.-subtraces prev-trace) k)]
-                                                (let [{new-subtrace :trace
-                                                       new-weight :weight
-                                                       discard :discard}
-                                                      (trace/update prev-subtrace
-                                                                    (get (choice-map/submaps constraints)
-                                                                         k))]
-                                                  {:trace new-subtrace
-                                                   :weight new-weight
-                                                   :discard discard})
-                                                (gf/generate gf args (get (choice-map/submaps constraints)
-                                                                          k)))]
-                                          (swap! state update :trace dynamic.trace/assoc-subtrace k subtrace)
-                                          (swap! state update :weight + weight)
-                                          (when discard
-                                            (swap! state update :discard assoc k discard))
-                                          (trace/retval subtrace)))]
+      (binding [dynamic.trace/*splice*
+                (fn [& _]
+                  (throw (ex-info "Not yet implemented." {})))
+
+                dynamic.trace/*trace*
+                (fn [k gf args]
+                  (let [{subtrace :trace
+                         weight :weight
+                         discard :discard}
+                        (if-let [prev-subtrace (get (.-subtraces prev-trace) k)]
+                          (let [{new-subtrace :trace
+                                 new-weight :weight
+                                 discard :discard}
+                                (trace/update prev-subtrace
+                                              (get (choice-map/submaps constraints)
+                                                   k))]
+                            {:trace new-subtrace
+                             :weight new-weight
+                             :discard discard})
+                          (gf/generate gf args (get (choice-map/submaps constraints)
+                                                    k)))]
+                    (swap! state update :trace dynamic.trace/assoc-subtrace k subtrace)
+                    (swap! state update :weight + weight)
+                    (when discard
+                      (swap! state update :discard assoc k discard))
+                    (trace/retval subtrace)))]
         (let [retval (apply (.-clojure-fn gf)
                             (trace/args prev-trace))
               {:keys [trace weight discard]} @state
