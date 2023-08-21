@@ -33,51 +33,15 @@
 (defprotocol Update
   (update
     [trace constraints]
-    "Shorthand variant of `gen.trace/update` which assumes the arguments are
-    unchanged."
-
     [trace args argdiffs constraints]
     "Updates a trace by changing the arguments and / or providing new values for
     some existing random choice(s) and values for some newly introduced random
-    choice(s)."))
+    choice(s).
 
-;; this could work for all distros?
-#_#_
-(defn update-primitive-trace
-  "Updates a trace representing a primitive distribution."
-  [t constraints]
-  (cond (map? constraints)
-        (throw
-         (ex-info
-          "Expected a value at address but found a sub-assignment."
-          {:sub-assignment constraints}))
+    The two-arity version is a shorthand variant of `gen.trace/update` which
+    assumes the arguments are unchanged.
 
-        (nil? constraints)
-        {:trace t
-         :weight 0.0
-         :change diff/unknown-change}
-
-        :else
-        (-> (trace/gf t)
-            (gf/generate (trace/args t) constraints)
-            (update :weight - (trace/score t))
-            (assoc :change    diff/unknown-change
-                   :discard   (choice-map/choice
-                               (trace/retval t))))))
-
-;; this could work for all of the distributions?
-(defrecord PrimitiveTrace [gf args retval choices score]
-  Trace
-  (gf [_] gf)
-  (args [_] args)
-  (retval [_] retval)
-  (choices [_] choices)
-  (score [_] score)
-  (-update
-    ([trace constraints]
-     (update-primitive-trace trace constraints))
-    ([_ _ _ _]
-     (throw (ex-info "Not yet implemented for primitive distributions.")))))
+    TODO deal with this implementation somewhere?"))
 
 #_
 (defprotocol Project
