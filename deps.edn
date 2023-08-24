@@ -20,7 +20,10 @@
     org.clojure/clojurescript {:mvn/version "1.11.60"}}}
 
   :test
-  {:extra-paths ["test"]}
+  {:extra-paths ["test"]
+   :extra-deps {com.gfredericks/test.chuck {:mvn/version "0.2.14"}
+                org.clojure/test.check {:mvn/version "1.1.1"}
+                same/ish {:mvn/version "0.1.6"}}}
 
   ;; See https://github.com/cognitect-labs/test-runner for invocation
   ;; instructions, or call `clojure -X:test:runner`.
