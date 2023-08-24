@@ -82,6 +82,7 @@
   distribution's [Wikipedia
   page](https://en.wikipedia.org/wiki/Beta_distribution#Probability_density_function)."
   [alpha beta v]
+  {:pre [(pos? alpha) (pos? beta)]}
   (if (< 0 v 1)
     (- (+ (* (- alpha 1) (Math/log v))
           (* (- beta alpha) (Math/log (- 1 v))))
@@ -93,8 +94,8 @@
   distribution](https://en.wikipedia.org/wiki/Bernoulli_distribution)
   parameterized by probability `p` at the boolean value `v`."
   [p v]
-  (Math/log
-   (if v p (- 1.0 p))))
+  {:pre [(<= 0 p 1)]}
+  (Math/log (if v p (- 1.0 p))))
 
 (defn cauchy
   "Returns the log-likelihood of a [Cauchy
@@ -115,8 +116,8 @@
   "Returns the log-likelihood of the [Dirac delta
   distribution](https://en.wikipedia.org/wiki/Dirac_delta_function) centered
   around `center` at the value `v`."
-  [param v]
-  (if (= param v) 0 ##-Inf))
+  [center v]
+  (if (= center v) 0.0 ##-Inf))
 
 (defn exponential
   "Returns the log-likelihood of the [exponential
@@ -166,10 +167,12 @@
                (Math/log variance)
                (/ v-mu-sq variance)))))
 
+
 (defn uniform
   "Returns the log-likelihood of the continuous [uniform
-  distribution](https://en.wikipedia.org/wiki/uniform_distribution) with
-  inclusive lower bound `a` and inclusive upper bound `b` at the value `v`."
+  distribution](https://en.wikipedia.org/wiki/Continuous_uniform_distribution)
+  with inclusive lower bound `a` and inclusive upper bound `b` at the value
+  `v`."
   [a b v]
   (if (<= a v b)
     (- (Math/log (- b a)))
