@@ -41,7 +41,7 @@ jobs:
             CLOVERAGE_VERSION=1.2.4 clojure -M:test:coverage --codecov || :
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v3
         with:
           fail_ci_if_error: true
-          file: ./target/coverage/codecov.json
+          files: ./target/coverage/codecov.json
