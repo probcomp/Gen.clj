@@ -21,6 +21,7 @@
 
                 dynamic.trace/*trace*
                 (fn [k gf args]
+                  (dynamic.trace/validate-empty! @trace k)
                   (let [subtrace (gf/simulate gf args)]
                     (swap! trace dynamic.trace/assoc k subtrace)
                     (trace/retval subtrace)))]
@@ -46,11 +47,13 @@
 
                 dynamic.trace/*trace*
                 (fn [k gf args]
-                  (let [ret (if-let [k-constraints (get (choice-map/submaps constraints) k)]
-                              (gf/generate gf args k-constraints)
-                              (gf/generate gf args))]
-                    (swap! state dynamic.trace/combine ret k)
-                    (trace/retval (:trace @state))))]
+                  (dynamic.trace/validate-empty! (:trace @state) k)
+                  (let [{subtrace :trace :as ret}
+                        (if-let [k-constraints (get (choice-map/submaps constraints) k)]
+                          (gf/generate gf args k-constraints)
+                          (gf/generate gf args))]
+                    (swap! state dynamic.trace/combine k ret)
+                    (trace/retval subtrace)))]
         (let [retval (apply clojure-fn args)
               trace (:trace @state)]
           {:trace (dynamic.trace/with-retval trace retval)

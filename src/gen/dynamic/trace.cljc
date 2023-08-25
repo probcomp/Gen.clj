@@ -1,7 +1,6 @@
 (ns gen.dynamic.trace
   (:refer-clojure :exclude [assoc =])
   (:require [clojure.core :as core]
-            [clojure.set :as set]
             [gen.choice-map :as choice-map]
             [gen.diff :as diff]
             [gen.dynamic.choice-map :as cm]
@@ -167,16 +166,19 @@
 (defn with-retval [^Trace t v]
   (->Trace (.-gf t) (.-args t) (.-subtraces t) v))
 
+(defn validate-empty! [t addr]
+  (when (contains? t addr)
+    (throw (ex-info "Value or subtrace already present at address. The same
+                      address cannot be reused for multiple random choices."
+                    {:addr addr}))))
+
 (defn assoc
   [^Trace t addr subt]
-  (let [subtraces (.-subtraces t)]
-    (when (contains? subtraces addr)
-      (throw (ex-info "Value or subtrace already present at address. The same address cannot be reused for multiple random choices."
-                      {:addr addr})))
-    (->Trace (.-gf t)
-             (.-args t)
-             (core/assoc subtraces addr subt)
-             (.-retval t))))
+  (validate-empty! t addr)
+  (->Trace (.-gf t)
+           (.-args t)
+           (core/assoc (.-subtraces t) addr subt)
+           (.-retval t)))
 
 (defn merge-subtraces
   [^Trace t1 ^Trace t2]
@@ -203,12 +205,14 @@
 
               *trace*
               (fn [k gf args]
+                (validate-empty! (:trace @state) k)
                 (let [k-constraints (get (choice-map/submaps constraints) k)
-                      ret (if-let [prev-subtrace (get (.-subtraces this) k)]
-                            (trace/update prev-subtrace k-constraints)
-                            (gf/generate gf args k-constraints))]
+                      {subtrace :trace :as ret}
+                      (if-let [prev-subtrace (get (.-subtraces this) k)]
+                        (trace/update prev-subtrace k-constraints)
+                        (gf/generate gf args k-constraints))]
                   (swap! state combine k ret)
-                  (trace/retval (:trace @state))))]
+                  (trace/retval subtrace)))]
       (let [retval (apply (:clojure-fn gf) (trace/args this))
             {:keys [trace weight discard]} @state
             unvisited (apply dissoc
