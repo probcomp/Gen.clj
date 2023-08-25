@@ -1,17 +1,13 @@
 (ns gen.dynamic
   (:require [clojure.math :as math]
-            [clojure.set :as set]
             [clojure.walk :as walk]
             [gen]
             [gen.choice-map :as choice-map]
-            [gen.dynamic.choice-map :as dynamic.choice-map]
-            [gen.dynamic.trace :as dynamic.trace #?@(:cljs [:refer [Trace]])]
+            [gen.dynamic.trace :as dynamic.trace]
             [gen.generative-function :as gf]
             [gen.trace :as trace])
   #?(:cljs
-     (:require-macros [gen.dynamic]))
-  #?(:clj
-     (:import (gen.dynamic.trace Trace))))
+     (:require-macros [gen.dynamic])))
 
 (defrecord DynamicDSLFunction [clojure-fn]
   gf/Simulate
@@ -26,7 +22,7 @@
                 dynamic.trace/*trace*
                 (fn [k gf args]
                   (let [subtrace (gf/simulate gf args)]
-                    (swap! trace dynamic.trace/assoc-subtrace k subtrace)
+                    (swap! trace dynamic.trace/assoc k subtrace)
                     (trace/retval subtrace)))]
         (let [retval (apply clojure-fn args)]
           (swap! trace dynamic.trace/with-retval retval)
@@ -50,15 +46,11 @@
 
                 dynamic.trace/*trace*
                 (fn [k gf args]
-                  (let [{subtrace :trace
-                         weight :weight}
-                        (if-let [constraints (get (choice-map/submaps constraints)
-                                                  k)]
-                          (gf/generate gf args constraints)
-                          (gf/generate gf args))]
-                    (swap! state update :trace dynamic.trace/assoc-subtrace k subtrace)
-                    (swap! state update :weight + weight)
-                    (trace/retval subtrace)))]
+                  (let [ret (if-let [k-constraints (get (choice-map/submaps constraints) k)]
+                              (gf/generate gf args k-constraints)
+                              (gf/generate gf args))]
+                    (swap! state dynamic.trace/combine ret k)
+                    (trace/retval (:trace @state))))]
         (let [retval (apply clojure-fn args)
               trace (:trace @state)]
           {:trace (dynamic.trace/with-retval trace retval)
@@ -114,50 +106,6 @@
        (-invoke [_ arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16 arg17 arg18 s] (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16 arg17 arg18 s)))
        (-invoke [_ arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16 arg17 arg18 arg19 arg20] (dynamic.trace/without-tracing (clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16 arg17 arg18 arg19 arg20)))
        (-invoke [_ arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16 arg17 arg18 arg19 arg20 args] (apply clojure-fn arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16 arg17 arg18 arg19 arg20 args))]))
-
-(extend-type Trace
-  trace/Update
-  (update [prev-trace constraints]
-    (let [^DynamicDSLFunction gf (trace/gf prev-trace)
-          state (atom {:trace (dynamic.trace/trace gf (trace/args prev-trace))
-                       :weight 0
-                       :discard (dynamic.choice-map/choice-map)})]
-      (binding [dynamic.trace/*splice*
-                (fn [& _]
-                  (throw (ex-info "Not yet implemented." {})))
-
-                dynamic.trace/*trace*
-                (fn [k gf args]
-                  (let [{subtrace :trace
-                         weight :weight
-                         discard :discard}
-                        (if-let [prev-subtrace (get (.-subtraces prev-trace) k)]
-                          (let [{new-subtrace :trace
-                                 new-weight :weight
-                                 discard :discard}
-                                (trace/update prev-subtrace
-                                              (get (choice-map/submaps constraints)
-                                                   k))]
-                            {:trace new-subtrace
-                             :weight new-weight
-                             :discard discard})
-                          (gf/generate gf args (get (choice-map/submaps constraints)
-                                                    k)))]
-                    (swap! state update :trace dynamic.trace/assoc-subtrace k subtrace)
-                    (swap! state update :weight + weight)
-                    (when discard
-                      (swap! state update :discard assoc k discard))
-                    (trace/retval subtrace)))]
-        (let [retval (apply (.-clojure-fn gf)
-                            (trace/args prev-trace))
-              {:keys [trace weight discard]} @state
-              unvisited (select-keys (trace/choices prev-trace)
-                                     (set/difference (set (keys (trace/choices prev-trace)))
-                                                     (set (keys (trace/choices trace)))))]
-
-          {:trace (dynamic.trace/with-retval trace retval)
-           :weight weight
-           :discard (merge discard unvisited)})))))
 
 (defn trace-form?
   "Returns true if `form` is a trace form."
