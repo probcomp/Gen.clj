@@ -2,9 +2,10 @@
   (:require [gen.distribution :as d]
             [gen.distribution.math.log-likelihood :as ll]
             [kixi.stats.distribution :as k])
-  (:import (kixi.stats.distribution Bernoulli Cauchy
-                                    Exponential Beta
-                                    Gamma Normal Uniform)))
+  #?(:clj
+     (:import (kixi.stats.distribution Bernoulli Cauchy
+                                       Exponential Beta
+                                       Gamma Normal Uniform))))
 
 ;; ## Kixi.stats protocol implementations
 ;;
@@ -13,7 +14,7 @@
 ;; instead of `draw`, we can call `sample-1` with the distribution and RNG.
 
 
-(extend-type Bernoulli
+(extend-type #?(:clj Bernoulli :cljs k/Bernoulli)
   d/Sample
   (sample [this] (k/draw this))
 
@@ -21,7 +22,7 @@
   (logpdf [this v]
     (ll/bernoulli (.-p this) v)))
 
-(extend-type Beta
+(extend-type #?(:clj Beta :cljs k/Beta)
   d/Sample
   (sample [this] (k/draw this))
 
@@ -31,7 +32,7 @@
              (.-beta this)
              v)))
 
-(extend-type Cauchy
+(extend-type #?(:clj Cauchy :cljs k/Cauchy)
   d/Sample
   (sample [this] (k/draw this))
 
@@ -41,7 +42,7 @@
                (.-scale this)
                v)))
 
-(extend-type Exponential
+(extend-type #?(:clj Exponential :cljs k/Exponential)
   d/Sample
   (sample [this] (k/draw this))
 
@@ -49,7 +50,7 @@
   (logpdf [this v]
     (ll/exponential (.-rate this) v)))
 
-(extend-type Uniform
+(extend-type #?(:clj Uniform :cljs k/Uniform)
   d/Sample
   (sample [this] (k/draw this))
 
@@ -59,7 +60,7 @@
           max (.-b this)]
       (ll/uniform min max v))))
 
-(extend-type Gamma
+(extend-type #?(:clj Gamma :cljs k/Gamma)
   d/Sample
   (sample [this] (k/draw this))
 
@@ -69,7 +70,7 @@
               (.-scale this)
               v)))
 
-(extend-type Normal
+(extend-type #?(:clj Normal :cljs k/Normal)
   d/Sample
   (sample [this] (k/draw this))
 

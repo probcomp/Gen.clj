@@ -46,10 +46,11 @@
 (deftest interface-tests
   (checking "Interface tests for choice maps"
             [m (gen-choice-map gen/keyword gen/any-equatable)]
-            (is (= (seq m)
-                   (iterable-seq
-                    (.iterator ^Iterable m)))
-                "iterator impl matches seq")
+            #?(:clj
+               (is (= (seq m)
+                      (iterable-seq
+                       (.iterator ^Iterable m)))
+                   "iterator impl matches seq"))
 
             (is (= m (dynamic.choice-map/choice-map
                       (zipmap (keys m) (vals m))))
