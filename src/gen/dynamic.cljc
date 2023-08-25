@@ -5,59 +5,60 @@
             [gen.choice-map :as choice-map]
             [gen.dynamic.trace :as dynamic.trace]
             [gen.generative-function :as gf]
-            [gen.trace :as trace])
+            [gen.trace-protocols :as trace])
   #?(:cljs
      (:require-macros [gen.dynamic])))
 
 (defrecord DynamicDSLFunction [clojure-fn]
   gf/Simulate
   (simulate [gf args]
-    (let [trace (atom (dynamic.trace/trace gf args))]
+    (let [!trace (atom (dynamic.trace/trace gf args))]
+      ;; initialize, side-effect... but this is really the impl for a map-shaped
+      ;; trace doing its thing.
       (binding [dynamic.trace/*splice*
                 (fn [gf args]
                   (let [subtrace (gf/simulate gf args)]
-                    (swap! trace dynamic.trace/merge-subtraces subtrace)
+                    (swap! !trace dynamic.trace/merge-subtraces subtrace)
                     (trace/retval subtrace)))
 
                 dynamic.trace/*trace*
                 (fn [k gf args]
-                  (dynamic.trace/validate-empty! @trace k)
+                  (dynamic.trace/validate-empty! @!trace k)
                   (let [subtrace (gf/simulate gf args)]
-                    (swap! trace dynamic.trace/assoc k subtrace)
+                    (swap! !trace dynamic.trace/assoc k subtrace)
                     (trace/retval subtrace)))]
-        (let [retval (apply clojure-fn args)]
-          (swap! trace dynamic.trace/with-retval retval)
-          @trace))))
+        (let [retval (apply clojure-fn args)
+              trace  @!trace]
+          (dynamic.trace/with-retval trace retval)))))
 
   gf/Generate
   (generate [gf args]
     (let [trace (gf/simulate gf args)]
       {:trace trace :weight (math/log 1)}))
   (generate [gf args constraints]
-    (let [state (atom {:trace (dynamic.trace/trace gf args)
+    (let [!state (atom {:trace (dynamic.trace/trace gf args)
                        :weight 0})]
       (binding [dynamic.trace/*splice*
                 (fn [gf args]
                   (let [{subtrace :trace
                          weight :weight}
                         (gf/generate gf args constraints)]
-                    (swap! state update :trace dynamic.trace/merge-subtraces subtrace)
-                    (swap! state update :weight + weight)
+                    (swap! !state update :trace dynamic.trace/merge-subtraces subtrace)
+                    (swap! !state update :weight + weight)
                     (trace/retval subtrace)))
 
                 dynamic.trace/*trace*
                 (fn [k gf args]
-                  (dynamic.trace/validate-empty! (:trace @state) k)
+                  (dynamic.trace/validate-empty! (:trace @!state) k)
                   (let [{subtrace :trace :as ret}
                         (if-let [k-constraints (get (choice-map/submaps constraints) k)]
                           (gf/generate gf args k-constraints)
                           (gf/generate gf args))]
-                    (swap! state dynamic.trace/combine k ret)
+                    (swap! !state dynamic.trace/combine k ret)
                     (trace/retval subtrace)))]
         (let [retval (apply clojure-fn args)
-              trace (:trace @state)]
-          {:trace (dynamic.trace/with-retval trace retval)
-           :weight (:weight @state)}))))
+              state  @!state]
+          (update state :trace dynamic.trace/with-retval retval)))))
 
   #?@(:clj
       [clojure.lang.IFn
@@ -144,10 +145,7 @@
                     (and (seq gfn)
                          (= `gen (first gfn)))))))))
 
-(defmacro gen
-  "Defines a generative function."
-  [& args]
-  {:clj-kondo/lint-as 'clojure.core/fn}
+(defn ^:no-doc gen-body [& args]
   (let [name (when (simple-symbol? (first args))
                (first args))
         [params & body] (if name (rest args) args)]
@@ -159,14 +157,20 @@
                                  (if-not (valid-trace-form? form)
                                    (throw (ex-info "Malformed trace expression." {:form form}))
                                    (let [[addr [gf & args]] (rest form)]
-                                     `(dynamic.trace/*trace* ~addr ~gf ~(vec args))))
+                                     `((dynamic.trace/current-trace) ~addr ~gf ~(vec args))))
 
                                  (splice-form? form)
                                  (if-not (valid-splice-form? form)
                                    (throw (ex-info "Malformed splice expression." {:form form}))
                                    (let [[[gf & args]] (rest form)]
-                                     `(dynamic.trace/*splice* ~gf ~(vec args))))
+                                     `((dynamic.trace/current-splice) ~gf ~(vec args))))
 
                                  :else
                                  form))
                          body)))))
+
+(defmacro gen
+  "Defines a generative function."
+  [& args]
+  {:clj-kondo/lint-as 'clojure.core/fn}
+  (apply gen-body args))

@@ -1,12 +1,13 @@
 ^{:nextjournal.clerk/visibility {:code :hide :result :hide}}
-(ns intro-to-modeling
+(ns face
   {:nextjournal.clerk/toc true}
   (:require [gen]
             [gen.choice-map]
             [gen.dynamic :refer [gen]]
+            [gen.dynamic.choice-map :as cm]
             [gen.clerk.callout :as callout]
             [gen.clerk.viewer :as viewer]
-            [gen.distribution.commons-math :as dist]
+            [gen.distribution.kixi :as dist]
             [gen.generative-function :as gf]
             [gen.trace-protocols :as trace]
             [nextjournal.clerk :as clerk]))
@@ -123,7 +124,7 @@
 
 ^{::clerk/viewer viewer/delay ::clerk/width :wide}
 (def delay-example
-  (delay (Thread/sleep 5000)
+  (delay (viewer/sleep 5000)
          :done))
 
 ;; ## 2. Writing a probabilistic model as a generative function
@@ -383,7 +384,7 @@
   functions where the time of f dominates the coordination overhead."
   [n f]
   (->> (range n)
-       (pmap (fn [_] (f)))
+       (map (fn [_] (f)))
        (into [])))
 
 ;; The function below renders a grid of traces.
@@ -587,7 +588,7 @@ math/PI
   ;; them to be inferred.
   (let [observations (reduce (fn [observations [i y]]
                                (assoc observations [:y i] y))
-                             #gen/choice-map {}
+                             (cm/choice-map {})
                              (map-indexed vector ys))]
     (:trace (importance/resampling model [xs] observations amount-of-computation))))
 
@@ -653,7 +654,7 @@ math/PI
 
 ;; For example:
 
-(def predicting-constraints #gen/choice-map {:slope 0 :intercept 0})
+(def predicting-constraints (cm/choice-map {:slope 0 :intercept 0}))
 (def predicting-trace (:trace (gf/generate line-model [xs] predicting-constraints)))
 
 (def predict-opts
@@ -685,7 +686,7 @@ math/PI
   ;; constraints.
   (let [constraints (reduce (fn [cm param-addr]
                               (assoc cm param-addr (get trace param-addr)))
-                            #gen/choice-map {}
+                            (cm/choice-map {})
                             param-addrs)
 
         ;; Run the model with new x coordinates, and with parameters
@@ -762,6 +763,8 @@ math/PI
 ;; We generate and plot the predicted data:
 
 (def pred-ys (infer-and-predict line-model xs ys new-xs [:slope :intercept] 20 1000))
+
+#_
 (plot-predictions xs ys new-xs pred-ys)
 
 ;; The results look reasonable, both within the interval of observed data and in
@@ -772,6 +775,7 @@ math/PI
 
 (def ys-noisy [5.092 4.781 2.46815 1.23047 0.903318 1.11819 2.10808 1.09198 0.0203789 -2.05068 2.66031])
 
+#_
 (let [pred-ys (infer-and-predict line-model xs ys-noisy new-xs [:slope :intercept] 20 1000)]
   (plot-predictions xs ys-noisy new-xs pred-ys))
 
@@ -802,6 +806,7 @@ math/PI
 ;; Then, we compare the predictions using inference of the unmodified and
 ;; modified models on the `ys` data set:
 
+#_
 (clerk/row
  (let [pred-ys (infer-and-predict line-model xs ys new-xs [:slope :intercept] 20 1000)]
    (plot-predictions xs ys new-xs pred-ys :title "fixed noise"))
@@ -814,6 +819,7 @@ math/PI
 ;; We also compare the predictions using inference of the unmodified and
 ;; modified models on the `ys-noisy` data set:
 
+#_
 (clerk/row
  (let [pred-ys (infer-and-predict line-model xs ys-noisy new-xs [:slope :intercept] 20 1000)]
    (plot-predictions xs ys-noisy new-xs pred-ys :title "fixed noise"))
@@ -856,12 +862,14 @@ math/PI
 
 (def ex-4-1-computation 2)
 
+#_
 (let [pred-ys (infer-and-predict sine-model xs ys-sine new-xs [] 20 ex-4-1-computation)
       pred-ys-fancy (infer-and-predict sine-model-fancy xs ys-sine new-xs [] 20 ex-4-1-computation)]
   (clerk/row
    (plot-predictions xs ys-sine new-xs pred-ys :title ["ys-sine" "fixed noise level"])
    (plot-predictions xs ys-sine new-xs pred-ys-fancy :title ["ys-sine" "inferred noise level"])))
 
+#_
 (let [pred-ys (infer-and-predict sine-model xs ys-noisy new-xs [] 20 ex-4-1-computation)
       pred-ys-fancy (infer-and-predict sine-model-fancy xs ys-noisy new-xs [] 20 ex-4-1-computation)]
   (clerk/row
@@ -967,12 +975,14 @@ math/PI
 ;; We visualize some traces, and see that sometimes it samples linear data and
 ;; other times sinusoidal data.
 
+#_
 (let [traces (prepeatedly 12 #(gf/simulate combined-model [xs]))]
   (grid render-trace traces))
 
 ;; We run inference using this combined model on the `ys` data set and the
 ;; `ys-sine` data set.
 
+#_
 (let [amount-of-computation 10000
       ys-traces (prepeatedly 10 #(do-inference combined-model xs ys amount-of-computation))
       ys-sine-traces (prepeatedly 10 #(do-inference combined-model xs ys-sine amount-of-computation))]
@@ -1019,7 +1029,7 @@ math/PI
 (def ys-complex
   (for [x xs-dense]
     (+ (if (zero? (-> (/ x 3)
-                      (abs)
+                      (Math/abs)
                       (math/floor)
                       (int)
                       (rem 2)))
@@ -1158,6 +1168,7 @@ math/PI
 ;; colors. Run the cell a few times to get a better sense of the distribution on
 ;; functions that is represented by the generative function.
 
+#_
 ^{::clerk/visibility {:result :show}}
 (grid render-segments-trace (prepeatedly 12 #(gf/simulate generate-segments [-5 5])))
 
@@ -1215,6 +1226,7 @@ math/PI
 ;; Finally, we generate some simulated data sets and visualize them on top of
 ;; the underlying piecewise constant function from which they were generated:
 
+#_
 (->> (prepeatedly 12 #(gf/simulate changepoint-model [xs-dense]))
      (grid render-changepoint-model-trace))
 
@@ -1223,6 +1235,7 @@ math/PI
 
 ;; Now we perform inference for the simple data set:
 
+#_
 ^{::clerk/viewer viewer/delay ::clerk/width :wide}
 (def simple-plot
   (delay
@@ -1245,6 +1258,7 @@ math/PI
 (callout/caveat
  "The following expression may take 2-3 minutes to evaluate.")
 
+#_
 ^{::clerk/viewer viewer/delay ::clerk/width :wide}
 (def dense-samples-grid
   (delay
@@ -1274,12 +1288,3 @@ math/PI
 (callout/hint
  "You will need to guarantee that all addresses are unique. How can you label
   each node in a binary tree using an integer?")
-
-^{::clerk/visibility {:code :hide :result :hide}}
-(comment
-
-  (clerk/serve! {:browse? true})
-
-  (clerk/show! "examples/intro_to_modeling.clj")
-
-  ,)

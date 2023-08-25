@@ -5,7 +5,7 @@
             [gen.diff :as diff]
             [gen.dynamic.choice-map :as cm]
             [gen.generative-function :as gf]
-            [gen.trace :as trace])
+            [gen.trace-protocols :as trace])
   #?(:cljs
      (:require-macros [gen.dynamic.trace]))
   #?(:clj
@@ -28,29 +28,30 @@
   like `gf/simulate`, `gf/generate`, `trace/update`, etc."
   no-op)
 
+(defn current-trace [] *trace*)
+(defn current-splice [] *splice*)
+
 (defmacro without-tracing
   [& body]
   `(binding [*trace* no-op
              *splice* no-op]
      ~@body))
 
-(declare assoc merge-trace with-retval update-trace trace =)
+(declare update-trace =)
 
 (deftype Trace [gf args subtraces retval]
+  trace/GenFn
+  (gf [_] gf)
+
   trace/Args
-  (args [_]
-    args)
+  (args [_] args)
+
+  trace/RetVal
+  (retval [_] retval)
 
   trace/Choices
   (choices [_]
     (cm/->ChoiceMap (update-vals subtraces trace/choices)))
-
-  trace/GenFn
-  (gf [_]
-    gf)
-
-  trace/RetVal
-  (retval [_] retval)
 
   trace/Score
   (score [_]
@@ -194,6 +195,7 @@
       (update :weight + weight)
       (cond-> discard (update :discard core/assoc k discard))))
 
+
 (defn update-trace [this constraints]
   (let [gf (trace/gf this)
         state (atom {:trace (trace gf (trace/args this))
@@ -208,7 +210,7 @@
                 (validate-empty! (:trace @state) k)
                 (let [k-constraints (get (choice-map/submaps constraints) k)
                       {subtrace :trace :as ret}
-                      (if-let [prev-subtrace (get (.-subtraces this) k)]
+                      (if-let [prev-subtrace (get (.-subtraces ^Trace this) k)]
                         (trace/update prev-subtrace k-constraints)
                         (gf/generate gf args k-constraints))]
                   (swap! state combine k ret)

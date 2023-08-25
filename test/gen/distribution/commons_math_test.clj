@@ -4,7 +4,7 @@
             [gen.diff :as diff]
             [gen.distribution.commons-math :as d]
             [gen.generative-function :as gf]
-            [gen.trace :as trace]))
+            [gen.trace-protocols :as trace]))
 
 (deftest bernoulli-call-no-args
   (is (boolean? (d/bernoulli))))
