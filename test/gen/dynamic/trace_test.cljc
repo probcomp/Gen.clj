@@ -31,45 +31,45 @@
   (let [trace (dynamic.trace/trace (gen []) [])]
     (is (nil? (trace :addr))))
   (let [trace (-> (dynamic.trace/trace (gen []) [])
-                  (dynamic.trace/assoc-subtrace :addr (choice-trace :x)))]
+                  (dynamic.trace/assoc :addr (choice-trace :x)))]
     (is (= :x (trace :addr)))))
 
 (deftest keys
   (is (= #{:addr}
          (-> (dynamic.trace/trace (gen []) [])
-             (dynamic.trace/assoc-subtrace :addr (choice-trace :x))
+             (dynamic.trace/assoc :addr (choice-trace :x))
              (clojure/keys)
              (set))))
   (is (= #{:addr1 :addr2}
          (-> (dynamic.trace/trace (gen []) [])
-             (dynamic.trace/assoc-subtrace :addr1 (choice-trace :x))
-             (dynamic.trace/assoc-subtrace :addr2 (choice-trace :y))
+             (dynamic.trace/assoc :addr1 (choice-trace :x))
+             (dynamic.trace/assoc :addr2 (choice-trace :y))
              (clojure/keys)
              (set)))))
 
 (deftest vals
   (is (= #{:x}
          (-> (dynamic.trace/trace (gen []) [])
-             (dynamic.trace/assoc-subtrace :addr (choice-trace :x))
+             (dynamic.trace/assoc :addr (choice-trace :x))
              (clojure/vals)
              (set))))
   (is (= #{:x :y}
          (-> (dynamic.trace/trace (gen []) [])
-             (dynamic.trace/assoc-subtrace :addr1 (choice-trace :x))
-             (dynamic.trace/assoc-subtrace :addr2 (choice-trace :y))
+             (dynamic.trace/assoc :addr1 (choice-trace :x))
+             (dynamic.trace/assoc :addr2 (choice-trace :y))
              (clojure/vals)
              (set)))))
 
 (deftest seq
   (let [trace (-> (dynamic.trace/trace (gen []) [])
-                  (dynamic.trace/assoc-subtrace :addr0 (choice-trace :x))
-                  (dynamic.trace/assoc-subtrace :addr1 (choice-trace :y))
-                  (dynamic.trace/assoc-subtrace :addr2 (choice-trace :z)))]
+                  (dynamic.trace/assoc :addr0 (choice-trace :x))
+                  (dynamic.trace/assoc :addr1 (choice-trace :y))
+                  (dynamic.trace/assoc :addr2 (choice-trace :z)))]
     (is (every? map-entry? (clojure/seq trace)))))
 
 (deftest get
   (let [trace (dynamic.trace/trace (gen []) [])]
     (is (nil? (clojure/get trace :addr))))
   (let [trace (-> (dynamic.trace/trace (gen []) [])
-                  (dynamic.trace/assoc-subtrace :addr (choice-trace :x)))]
+                  (dynamic.trace/assoc :addr (choice-trace :x)))]
     (is (= :x (clojure/get trace :addr)))))

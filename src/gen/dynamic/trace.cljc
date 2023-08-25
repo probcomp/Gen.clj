@@ -1,6 +1,8 @@
 (ns gen.dynamic.trace
-  (:refer-clojure :exclude [=])
+  (:refer-clojure :exclude [assoc =])
   (:require [clojure.core :as core]
+            [clojure.set :as set]
+            [gen.choice-map :as choice-map]
             [gen.diff :as diff]
             [gen.dynamic.choice-map :as cm]
             [gen.generative-function :as gf]
@@ -33,7 +35,7 @@
              *splice* no-op]
      ~@body))
 
-(declare assoc-subtrace merge-trace with-retval trace =)
+(declare assoc merge-trace with-retval update-trace trace =)
 
 (deftype Trace [gf args subtraces retval]
   trace/Args
@@ -56,6 +58,10 @@
     ;; TODO Handle untraced randomness.
     (let [v (vals subtraces)]
       (transduce (map trace/score) + 0.0 v)))
+
+  trace/Update
+  (update [this constraints]
+    (update-trace this constraints))
 
   #?@(:cljs
       [Object
@@ -161,7 +167,7 @@
 (defn with-retval [^Trace t v]
   (->Trace (.-gf t) (.-args t) (.-subtraces t) v))
 
-(defn assoc-subtrace
+(defn assoc
   [^Trace t addr subt]
   (let [subtraces (.-subtraces t)]
     (when (contains? subtraces addr)
@@ -169,14 +175,49 @@
                       {:addr addr})))
     (->Trace (.-gf t)
              (.-args t)
-             (assoc subtraces addr subt)
+             (core/assoc subtraces addr subt)
              (.-retval t))))
 
 (defn merge-subtraces
   [^Trace t1 ^Trace t2]
-  (reduce-kv assoc-subtrace
+  (reduce-kv assoc
              t1
              (.-subtraces t2)))
+
+(defn ^:no-doc combine
+  "combine by adding weights?"
+  [v k {:keys [trace weight discard]}]
+  (-> v
+      (update :trace assoc k trace)
+      (update :weight + weight)
+      (cond-> discard (update :discard core/assoc k discard))))
+
+(defn update-trace [this constraints]
+  (let [gf (trace/gf this)
+        state (atom {:trace (trace gf (trace/args this))
+                     :weight 0
+                     :discard (cm/choice-map)})]
+    (binding [*splice*
+              (fn [& _]
+                (throw (ex-info "Not yet implemented." {})))
+
+              *trace*
+              (fn [k gf args]
+                (let [k-constraints (get (choice-map/submaps constraints) k)
+                      ret (if-let [prev-subtrace (get (.-subtraces this) k)]
+                            (trace/update prev-subtrace k-constraints)
+                            (gf/generate gf args k-constraints))]
+                  (swap! state combine k ret)
+                  (trace/retval (:trace @state))))]
+      (let [retval (apply (:clojure-fn gf) (trace/args this))
+            {:keys [trace weight discard]} @state
+            unvisited (apply dissoc
+                             (trace/choices this)
+                             (keys (trace/choices trace)))]
+
+        {:trace (with-retval trace retval)
+         :weight weight
+         :discard (merge discard unvisited)}))))
 
 ;; ## Primitive Trace
 ;;

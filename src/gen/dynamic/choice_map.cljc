@@ -176,7 +176,10 @@
                     (.iterator ^Iterable (map auto-get-choice m)))
 
        Iterable
-       (iterator [this] (.iterator ^Iterable (.seq this)))]))
+       (iterator [this]
+                 (if-let [xs (.seq this)]
+                   (.iterator ^Iterable xs)
+                   (.iterator {})))]))
 
 (defn unwrap
   "If `m` is a [[Choice]] or [[ChoiceMap]], returns `m` stripped of its wrappers.
