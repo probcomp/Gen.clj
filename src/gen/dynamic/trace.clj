@@ -59,7 +59,6 @@
 
   Object
   (equals [this that] (= this that))
-  (toString [this] (pr-str this))
 
   IFn
   (invoke [this k] (.valAt this k))
