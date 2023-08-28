@@ -2,8 +2,14 @@
   (:refer-clojure :exclude [empty empty?])
   (:require [clojure.core :as clojure]
             [clojure.test :refer [deftest is]]
+            [clojure.test.check.generators :as gen]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]]
             [gen.choice-map :as choice-map]
             [gen.dynamic.choice-map :as dynamic.choice-map]))
+
+(def gen-choice-map
+  (comp (partial gen/fmap dynamic.choice-map/choice-map)
+        gen/map))
 
 (deftest choice
   (is (dynamic.choice-map/choice? (dynamic.choice-map/choice nil)))
@@ -30,3 +36,21 @@
   (is (clojure/empty? #gen/choice-map {}))
   #_{:clj-kondo/ignore [:not-empty?]}
   (is (not (clojure/empty? #gen/choice-map {:x 0}))))
+
+(defn iterable-seq [^Iterable iter]
+  (when (.hasNext iter)
+    (lazy-seq
+     (cons (.next iter)
+           (iterable-seq iter)))))
+
+(deftest interface-tests
+  (checking "Interface tests for choice maps"
+            [m (gen-choice-map gen/keyword gen/any-equatable)]
+            (is (= (seq m)
+                   (iterable-seq
+                    (.iterator ^Iterable m)))
+                "iterator impl matches seq")
+
+            (is (= m (dynamic.choice-map/choice-map
+                      (zipmap (keys m) (vals m))))
+                "keys and vals work correctly")))
