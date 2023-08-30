@@ -1,65 +1,26 @@
 (ns gen.distribution.kixi-test
-  (:require [clojure.math :as math]
-            [clojure.test :refer [deftest is]]
-            [gen]
-            [gen.choice-map]
-            [gen.diff :as diff]
-            [gen.distribution.kixi :as d]
-            [gen.generative-function :as gf]
-            [gen.trace :as trace]))
+  (:require [clojure.test :refer [deftest]]
+            [gen.distribution-test :as dt]
+            [gen.distribution.kixi :as kixi]))
 
-(deftest bernoulli-call-no-args
-  (is (boolean? (d/bernoulli))))
+(deftest bernoulli-tests
+  (dt/bernoulli-tests kixi/bernoulli-distribution)
+  (dt/bernoulli-gfi-tests kixi/bernoulli))
 
-(deftest bernoulli-call-args
-  (is (boolean? (d/bernoulli 0.5))))
+(deftest beta-tests
+  (dt/beta-tests kixi/beta-distribution))
 
-(deftest bernoulli-gf
-  (is (= d/bernoulli (trace/gf (gf/simulate d/bernoulli [])))))
+(deftest cauchy-tests
+  (dt/cauchy-tests kixi/cauchy-distribution))
 
-(deftest bernoulli-args
-  (is (= [0.5] (trace/args (gf/simulate d/bernoulli [0.5])))))
+(deftest exponential-tests
+  (dt/exponential-tests kixi/exponential-distribution))
 
-(deftest bernoulli-retval
-  (is (boolean? (trace/retval (gf/simulate d/bernoulli [0.5])))))
+(deftest uniform-tests
+  (dt/uniform-tests kixi/uniform-distribution))
 
-(deftest bernoulli-choices-noargs
-  (trace/choices (gf/simulate d/bernoulli [])))
+(deftest normal-tests
+  (dt/normal-tests kixi/normal-distribution))
 
-(deftest bernoulli-update-weight
-  (is (= 1.0
-         (-> (gf/generate d/bernoulli [0.3] #gen/choice true)
-             (:trace)
-             (trace/update #gen/choice true)
-             (:weight)
-             (math/exp))))
-  (is (= (/ 0.7 0.3)
-         (-> (gf/generate d/bernoulli [0.3] #gen/choice true)
-             (:trace)
-             (trace/update #gen/choice false)
-             (:weight)
-             (math/exp)))))
-
-(deftest bernoulli-update-discard
-  (is (nil?
-       (-> (gf/generate d/bernoulli [0.3] #gen/choice true)
-           (:trace)
-           (trace/update nil)
-           (:discard))))
-  (is (= #gen/choice true
-         (-> (gf/generate d/bernoulli [0.3] #gen/choice true)
-             (:trace)
-             (trace/update #gen/choice false)
-             (:discard)))))
-
-(deftest bernoulli-update-change
-  (is (= diff/unknown-change
-         (-> (gf/generate d/bernoulli [0.3] #gen/choice true)
-             (:trace)
-             (trace/update nil)
-             (:change))))
-  (is (= diff/unknown-change
-         (-> (gf/generate d/bernoulli [0.3] #gen/choice true)
-             (:trace)
-             (trace/update #gen/choice false)
-             (:change)))))
+(deftest gamma-tests
+  (dt/gamma-tests kixi/gamma-distribution))

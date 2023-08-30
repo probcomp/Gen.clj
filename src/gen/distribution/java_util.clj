@@ -47,8 +47,8 @@
   ([] (uniform-distribution 0.0 1.0))
   ([lo hi] (->Uniform (rng) lo hi)))
 
-(defn gaussian-distribution
-  ([] (gaussian-distribution 0.0 1.0))
+(defn normal-distribution
+  ([] (normal-distribution 0.0 1.0))
   ([mu sigma]
    (->Gaussian (rng) mu sigma)))
 
@@ -60,5 +60,5 @@
 (def uniform
   (d/->GenerativeFn uniform-distribution))
 
-(def gaussian
-  (d/->GenerativeFn gaussian-distribution))
+(def normal
+  (d/->GenerativeFn normal-distribution))

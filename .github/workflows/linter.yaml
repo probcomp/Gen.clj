@@ -27,4 +27,4 @@ jobs:
         run: bb lint-deps
 
       - name: Lint files
-        run: bb lint --config '{:output {:pattern "::{{level}} file={{filename}},line={{row}},col={{col}}::{{message}}"}}'
+        run: bb lint --cache false --config '{:output {:pattern "::{{level}} file={{filename}},line={{row}},col={{col}}::{{message}}"}}'
