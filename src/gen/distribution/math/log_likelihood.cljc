@@ -85,7 +85,7 @@
   {:pre [(pos? alpha) (pos? beta)]}
   (if (< 0 v 1)
     (- (+ (* (- alpha 1) (Math/log v))
-          (* (- beta alpha) (Math/log (- 1 v))))
+          (* (- beta 1) (Math/log (- 1 v))))
        (log-beta-fn alpha beta))
     ##-Inf))
 
@@ -100,12 +100,12 @@
 (defn cauchy
   "Returns the log-likelihood of a [Cauchy
   distribution](https://en.wikipedia.org/wiki/Cauchy_distribution) parameterized
-  by `scale` and `location` at the value `v`.
+  by `location` and `scale` at the value `v`.
 
   The implementation follows the algorithm described on the Cauchy
   distribution's [Wikipedia
   page](https://en.wikipedia.org/wiki/Cauchy_distribution#Probability_density_function_(PDF))."
-  [scale location v]
+  [location scale v]
   (let [normalized (/ (- v location) scale)
         norm**2    (* normalized normalized)]
     (- (- log-pi)
