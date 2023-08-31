@@ -21,7 +21,7 @@
 
   test:clj
   {:doc "Run CLJ tests."
-   :task (shell "clojure -X:test:runner")}
+   :task (shell "clojure -X:test:nextjournal/clerk:runner")}
 
   test:cljs
   {:doc "Run CLJS tests."
