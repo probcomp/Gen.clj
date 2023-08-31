@@ -298,7 +298,7 @@
 ;; `gen.trace/args`:
 
 ^{::clerk/visibility {:result :hide}}
-(require '[gen.trace :as trace])
+(require '[gen.protocols.trace :as trace])
 
 (trace/args trace)
 

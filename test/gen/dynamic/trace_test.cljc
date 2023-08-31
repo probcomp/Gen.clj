@@ -6,7 +6,7 @@
             [gen.dynamic :refer [gen]]
             [gen.dynamic.choice-map :as dynamic.choice-map]
             [gen.dynamic.trace :as dynamic.trace]
-            [gen.trace :as trace]))
+            [gen.protocols.trace :as trace]))
 
 (defn choice-trace
   [x]

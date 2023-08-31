@@ -5,7 +5,7 @@
             [gen.distribution.kixi :as d]
             [gen.dynamic :as dynamic :refer [gen]]
             [gen.generative-function :as gf]
-            [gen.trace :as trace]))
+            [gen.protocols.trace :as trace]))
 
 (deftest call
   (is (nil? ((gen []))))

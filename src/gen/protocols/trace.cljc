@@ -1,4 +1,4 @@
-(ns gen.trace
+(ns gen.protocols.trace
   "Protocols that constitute the trace interface."
   (:refer-clojure :exclude [update]))
 

@@ -5,7 +5,7 @@
             [gen]
             [gen.distribution.commons-math :as dist]
             [gen.generative-function :as gf]
-            [gen.trace :as trace]
+            [gen.protocols.trace :as trace]
             [nextjournal.clerk :as clerk]))
 
 ^{::clerk/visibility {:code :hide :result :hide}}

@@ -7,7 +7,7 @@
             [gen.dynamic.choice-map :as dynamic.choice-map]
             [gen.dynamic.trace :as dynamic.trace #?@(:cljs [:refer [Trace]])]
             [gen.generative-function :as gf]
-            [gen.trace :as trace])
+            [gen.protocols.trace :as trace])
   #?(:cljs
      (:require-macros [gen.dynamic]))
   #?(:clj
