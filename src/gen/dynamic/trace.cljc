@@ -27,6 +27,23 @@
   like `gf/simulate`, `gf/generate`, `trace/update`, etc."
   no-op)
 
+(defn active-trace
+  "Returns the currently-active tracing function, bound to [[*trace*]].
+
+  NOTE: Prefer `([[active-trace]])` to `[[*trace*]]`, as direct access to
+  `[[*trace*]]` won't reflect new bindings when accessed inside of an SCI
+  environment."
+  [] *trace*)
+
+(defn active-splice
+  "Returns the currently-active tracing function, bound to [[*splice*]].
+
+  NOTE: Prefer `([[active-splice]])` to `[[*splice*]]`, as direct access to
+  `[[*splice*]]` won't reflect new bindings when accessed inside of an SCI
+  environment."
+  []
+  *splice*)
+
 (defmacro without-tracing
   [& body]
   `(binding [*trace* no-op

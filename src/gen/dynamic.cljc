@@ -208,13 +208,13 @@
                                  (if-not (valid-trace-form? form)
                                    (throw (ex-info "Malformed trace expression." {:form form}))
                                    (let [[addr [gf & args]] (rest form)]
-                                     `(dynamic.trace/*trace* ~addr ~gf ~(vec args))))
+                                     `((dynamic.trace/active-trace) ~addr ~gf ~(vec args))))
 
                                  (splice-form? form)
                                  (if-not (valid-splice-form? form)
                                    (throw (ex-info "Malformed splice expression." {:form form}))
                                    (let [[[gf & args]] (rest form)]
-                                     `(dynamic.trace/*splice* ~gf ~(vec args))))
+                                     `((dynamic.trace/active-splice) ~gf ~(vec args))))
 
                                  :else
                                  form))
