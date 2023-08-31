@@ -12,46 +12,39 @@
      (:import
       (clojure.lang Associative IFn IObj IMapIterable Seqable))))
 
-(defn no-op
-  ([gf args]
-   (apply gf args))
-  ([_k gf args]
-   (apply gf args)))
+(defprotocol ITrace
+  (-splice [this gf args])
+  (-trace  [this addr gf args]))
 
-(def ^:dynamic *trace*
-  "Applies the generative function gf to args. Dynamically rebound by functions
-  like `gf/simulate`, `gf/generate`, `trace/update`, etc."
-  no-op)
+(defrecord NoOp []
+  ITrace
+  (-splice [this gf args]
+    [this (apply gf args)])
+  (-trace [this _k gf args]
+    [this (apply gf args)]))
 
-(def ^:dynamic *splice*
-  "Applies the generative function gf to args. Dynamically rebound by functions
-  like `gf/simulate`, `gf/generate`, `trace/update`, etc."
-  no-op)
+(def no-op (NoOp.))
 
-(defn active-trace
-  "Returns the currently-active tracing function, bound to [[*trace*]].
+(def ^:dynamic *active* (atom no-op))
 
-  NOTE: Prefer `([[active-trace]])` to `[[*trace*]]`, as direct access to
-  `[[*trace*]]` won't reflect new bindings when accessed inside of an SCI
-  environment."
-  [] *trace*)
+(defn active [] *active*)
 
-(defn active-splice
-  "Returns the currently-active tracing function, bound to [[*splice*]].
+(defn splice! [gf args]
+  (let [[new-state ret] (-splice @*active* gf args)]
+    (swap! *active* (fn [_] new-state))
+    ret))
 
-  NOTE: Prefer `([[active-splice]])` to `[[*splice*]]`, as direct access to
-  `[[*splice*]]` won't reflect new bindings when accessed inside of an SCI
-  environment."
-  []
-  *splice*)
+(defn trace! [k gf args]
+  (let [[new-state ret] (-trace @*active* k gf args)]
+    (swap! *active* (fn [_] new-state))
+    ret))
 
 (defmacro without-tracing
   [& body]
-  `(binding [*trace* no-op
-             *splice* no-op]
+  `(binding [*active* (atom no-op)]
      ~@body))
 
-(declare assoc-subtrace update-trace trace =)
+(declare assoc-subtrace merge-subtraces update-trace validate-empty! trace =)
 
 (deftype Trace [gf args subtraces retval]
   trace/Args
@@ -78,6 +71,18 @@
   trace/Update
   (update [this constraints]
     (update-trace this constraints))
+
+  ITrace
+  (-splice [this gf args]
+    (let [subtrace (gf/simulate gf args)]
+      [(merge-subtraces this subtrace)
+       (trace/retval subtrace)]))
+
+  (-trace [this k gf args]
+    (validate-empty! this k)
+    (let [subtrace (gf/simulate gf args)]
+      [(assoc-subtrace this k subtrace)
+       (trace/retval subtrace)]))
 
   #?@(:cljs
       [Object
@@ -193,9 +198,9 @@
   [^Trace t addr subt]
   (validate-empty! t addr)
   (->Trace (.-gf t)
-             (.-args t)
-             (assoc (.-subtraces t) addr subt)
-             (.-retval t)))
+           (.-args t)
+           (assoc (.-subtraces t) addr subt)
+           (.-retval t)))
 
 (defn merge-subtraces
   [^Trace t1 ^Trace t2]
@@ -211,34 +216,42 @@
       (update :weight + weight)
       (cond-> discard (update :discard assoc k discard))))
 
+;; TODO: this does NOT feel like the right data structure. In fact I think
+;; updates should be able to shuffle over the unused stuff from update to
+;; update, instead of having to do that final update at the very end.
+;;
+;; Then each update step could shuffling from the constraints over to the end.
+(defrecord UpdateMap [this constraints trace weight discard]
+  ITrace
+  (-splice [_ _ _]
+    (throw (ex-info "Not yet implemented." {})))
+
+  (-trace [state k gf args]
+    (validate-empty! trace k)
+    (let [k-constraints (get (choice-map/submaps constraints) k)
+          {subtrace :trace :as ret}
+          (if-let [prev-subtrace (get (.-subtraces ^Trace this) k)]
+            (trace/update prev-subtrace k-constraints)
+            (gf/generate gf args k-constraints))]
+      [(combine state k ret)
+       (trace/retval subtrace)])))
+
 (defn update-trace [this constraints]
-  (let [gf (trace/gf this)
-        state (atom {:trace (trace gf (trace/args this))
-                     :weight 0
-                     :discard (cm/choice-map)})]
-    (binding [*splice*
-              (fn [& _]
-                (throw (ex-info "Not yet implemented." {})))
-
-              *trace*
-              (fn [k gf args]
-                (validate-empty! (:trace @state) k)
-                (let [k-constraints (get (choice-map/submaps constraints) k)
-                      {subtrace :trace :as ret}
-                      (if-let [prev-subtrace (get (.-subtraces this) k)]
-                        (trace/update prev-subtrace k-constraints)
-                        (gf/generate gf args k-constraints))]
-                  (swap! state combine k ret)
-                  (trace/retval subtrace)))]
-      (let [retval (apply (:clojure-fn gf) (trace/args this))
-            {:keys [trace weight discard]} @state
-            unvisited (apply dissoc
-                             (trace/choices this)
-                             (keys (trace/choices trace)))]
-
-        {:trace (with-retval trace retval)
-         :weight weight
-         :discard (merge discard unvisited)}))))
+  (let [gf     (trace/gf this)
+        !state (atom (->UpdateMap
+                      this constraints
+                      (trace gf (trace/args this))
+                      0
+                      (cm/choice-map)))
+        retval (binding [*active* !state]
+                 (apply (:clojure-fn gf) (trace/args this)))
+        {:keys [trace weight discard]} @!state
+        unvisited (apply dissoc
+                         (trace/choices this)
+                         (keys (trace/choices trace)))]
+    {:trace (with-retval trace retval)
+     :weight weight
+     :discard (merge discard unvisited)}))
 
 ;; ## Primitive Trace
 ;;
