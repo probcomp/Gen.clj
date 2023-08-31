@@ -3,12 +3,22 @@
  :deps
  {kixi/stats {:mvn/version "0.5.5"}
   org.apache.commons/commons-math3 {:mvn/version "3.6.1"}
-  org.clojure/clojure {:mvn/version "1.11.1"}}
+  org.clojure/clojure {:mvn/version "1.11.1"}
+  org.mentat/clerk-utils {:mvn/version "0.6.0"}}
 
  :aliases
  {:nextjournal/clerk
-  {:extra-paths ["dev" "examples" "examples/src"]
-   :extra-deps {io.github.nextjournal/clerk {:mvn/version "0.14.919"}}
+  {:extra-paths ["dev" "examples"]
+   :extra-deps
+   {io.github.nextjournal/cas-client
+    {:git/sha "84ab35c3321c1e51a589fddbeee058aecd055bf8"}
+    io.github.nextjournal/clerk
+    {:git/sha "d80187013d7b7b96db3d8b114b8d99f687170668"}
+
+    io.github.nextjournal/clerk.render
+    {:git/url "https://github.com/nextjournal/clerk"
+     :git/sha "d80187013d7b7b96db3d8b114b8d99f687170668"
+     :deps/root "render"}}
    :exec-fn user/build!}
 
   :cljs
@@ -19,6 +29,7 @@
   :test
   {:extra-paths ["test"]
    :extra-deps {com.gfredericks/test.chuck {:mvn/version "0.2.14"}
+                org.babashka/sci {:mvn/version "0.8.40"}
                 org.clojure/test.check {:mvn/version "1.1.1"}
                 same/ish {:mvn/version "0.1.6"}}}
 

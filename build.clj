@@ -1,11 +1,37 @@
 (ns build
   "tools.build declarations for the gen.clj library."
-  (:require [clojure.tools.build.api :as b]))
+  (:require [clojure.data.xml :as xml]
+            [clojure.tools.build.api :as b]
+            [clojure.tools.build.tasks.write-pom :as write-pom]))
+
+;; This (the following two forms) comprises a trick I figured out to inject a
+;; provided dependency into the pom.xml. This is necessary for
+;; https://cljdoc.org/ to process docs from a library like ours that includes
+;; namespaces requiring, say, Clerk or SCI, but don't ship with an explicit
+;; required dependency on those libraries.
+
+(xml/alias-uri 'pom "http://maven.apache.org/POM/4.0.0")
+
+(alter-var-root
+ #'write-pom/to-dep
+ (fn [old]
+   (fn [[_ {:keys [mvn/scope]} :as pair]]
+     (cond-> (old pair)
+       scope
+       (conj [::pom/scope scope])))))
 
 ;; ## Variables
 
 (def lib 'io.github.inferenceql/gen.clj)
 (def version "0.1.0")
+
+(def pom-deps
+  {'io.github.nextjournal/clerk
+   {:mvn/version "0.14.919"
+    :mvn/scope "provided"}
+   'org.babashka/sci
+   {:mvn/version "0.8.40"
+    :mvn/scope "provided"}})
 
 (defn- ->version
   ([] version)
@@ -18,7 +44,8 @@
 (def class-dir "target/classes")
 (def basis
   (b/create-basis
-   {:project "deps.edn"}))
+   {:project "deps.edn"
+    :extra {:deps pom-deps}}))
 
 (defn ->jar-file [version]
   (format "target/%s-%s.jar" (name lib) version))

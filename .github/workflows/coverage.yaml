@@ -34,11 +34,11 @@ jobs:
           key: gitlibs-${{ hashFiles('deps.edn') }}
 
       - name: Install dependencies
-        run: clojure -P -M:test:coverage
+        run: clojure -P -M:test:nextjournal/clerk:coverage
 
       - name: generate coverage report
         run: |
-            CLOVERAGE_VERSION=1.2.4 clojure -M:test:coverage --codecov || :
+            CLOVERAGE_VERSION=1.2.4 clojure -M:test:nextjournal/clerk:coverage --codecov || :
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
