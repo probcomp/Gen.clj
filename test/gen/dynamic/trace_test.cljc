@@ -10,13 +10,9 @@
 
 (deftest binding-tests
   (letfn [(f [_] "hi!")]
-    (binding [dynamic.trace/*trace* f
-              dynamic.trace/*splice* f]
-      (is (= f (dynamic.trace/active-trace))
-          "active-trace reflects dynamic bindings")
-
-      (is (= f (dynamic.trace/active-splice))
-          "active-splice reflects dynamic bindings"))))
+    (binding [dynamic.trace/*active* f]
+      (is (= f (dynamic.trace/active))
+          "active reflects dynamic bindings"))))
 
 (defn choice-trace
   [x]

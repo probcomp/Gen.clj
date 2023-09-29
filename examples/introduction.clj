@@ -140,7 +140,7 @@
 ;; then these values are sufficient to answer any question using executions of
 ;; the function, because all states in the execution of the function are
 ;; deterministic given the random choices. We will call the record of all the
-;; random choies a **trace**. In order to store all the random choices in the
+;; random choices a **trace**. In order to store all the random choices in the
 ;; trace, we need to come up with a unique name or **address** for each random
 ;; choice.
 

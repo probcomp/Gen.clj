@@ -9,55 +9,48 @@
   #?(:cljs
      (:require-macros [gen.dynamic])))
 
+(defrecord GenerateMap [constraints trace weight]
+  dynamic.trace/ITrace
+  (-splice [state gf args]
+    (let [{subtrace :trace
+           weight   :weight}
+          (gf/generate gf args constraints)]
+      [(-> state
+           (update :trace dynamic.trace/merge-subtraces subtrace)
+           (update :weight + weight))
+       (trace/retval subtrace)]))
+
+  (-trace [state k gf args]
+    (dynamic.trace/validate-empty! trace k)
+    (let [{subtrace :trace :as ret}
+          (if-let [k-constraints (get (choice-map/submaps constraints) k)]
+            (gf/generate gf args k-constraints)
+            (gf/generate gf args))]
+      [(dynamic.trace/combine state k ret)
+       (trace/retval subtrace)])))
+
 (defrecord DynamicDSLFunction [clojure-fn]
   gf/Simulate
   (simulate [gf args]
-    (let [trace (atom (dynamic.trace/trace gf args))]
-      (binding [dynamic.trace/*splice*
-                (fn [gf args]
-                  (let [subtrace (gf/simulate gf args)]
-                    (swap! trace dynamic.trace/merge-subtraces subtrace)
-                    (trace/retval subtrace)))
-
-                dynamic.trace/*trace*
-                (fn [k gf args]
-                  (dynamic.trace/validate-empty! @trace k)
-                  (let [subtrace (gf/simulate gf args)]
-                    (swap! trace dynamic.trace/assoc-subtrace k subtrace)
-                    (trace/retval subtrace)))]
-        (let [retval (apply clojure-fn args)]
-          (swap! trace dynamic.trace/with-retval retval)
-          @trace))))
+    (let [!trace (atom (dynamic.trace/trace gf args))
+          retval (binding [dynamic.trace/*active* !trace]
+                   (apply clojure-fn args))
+          trace  @!trace]
+      (dynamic.trace/with-retval trace retval)))
 
   gf/Generate
   (generate [gf args]
     (let [trace (gf/simulate gf args)]
       {:trace trace :weight (math/log 1)}))
   (generate [gf args constraints]
-    (let [state (atom {:trace (dynamic.trace/trace gf args)
-                       :weight 0})]
-      (binding [dynamic.trace/*splice*
-                (fn [gf args]
-                  (let [{subtrace :trace
-                         weight :weight}
-                        (gf/generate gf args constraints)]
-                    (swap! state update :trace dynamic.trace/merge-subtraces subtrace)
-                    (swap! state update :weight + weight)
-                    (trace/retval subtrace)))
-
-                dynamic.trace/*trace*
-                (fn [k gf args]
-                  (dynamic.trace/validate-empty! (:trace @state) k)
-                  (let [{subtrace :trace :as ret}
-                        (if-let [k-constraints (get (choice-map/submaps constraints) k)]
-                          (gf/generate gf args k-constraints)
-                          (gf/generate gf args))]
-                    (swap! state dynamic.trace/combine k ret)
-                    (trace/retval subtrace)))]
-        (let [retval (apply clojure-fn args)
-              trace (:trace @state)]
-          {:trace (dynamic.trace/with-retval trace retval)
-           :weight (:weight @state)}))))
+    (let [!state (atom (->GenerateMap
+                        constraints
+                        (dynamic.trace/trace gf args)
+                        0))
+          retval (binding [dynamic.trace/*active* !state]
+                   (apply clojure-fn args))
+          state  @!state]
+      (update state :trace dynamic.trace/with-retval retval)))
 
   #?@(:clj
       [clojure.lang.IFn
@@ -154,19 +147,20 @@
     `(->DynamicDSLFunction
       (fn ~@(when name [name])
         ~params
-        ~@(walk/postwalk (fn [form]
-                           (cond (trace-form? form)
-                                 (if-not (valid-trace-form? form)
-                                   (throw (ex-info "Malformed trace expression." {:form form}))
-                                   (let [[addr [gf & args]] (rest form)]
-                                     `((dynamic.trace/active-trace) ~addr ~gf ~(vec args))))
+        ~@(walk/postwalk
+           (fn [form]
+             (cond (trace-form? form)
+                   (if-not (valid-trace-form? form)
+                     (throw (ex-info "Malformed trace expression." {:form form}))
+                     (let [[addr [gf & args]] (rest form)]
+                       `(dynamic.trace/trace! ~addr ~gf ~(vec args))))
 
-                                 (splice-form? form)
-                                 (if-not (valid-splice-form? form)
-                                   (throw (ex-info "Malformed splice expression." {:form form}))
-                                   (let [[[gf & args]] (rest form)]
-                                     `((dynamic.trace/active-splice) ~gf ~(vec args))))
+                   (splice-form? form)
+                   (if-not (valid-splice-form? form)
+                     (throw (ex-info "Malformed splice expression." {:form form}))
+                     (let [[[gf & args]] (rest form)]
+                       `(dynamic.trace/splice! ~gf ~(vec args))))
 
-                                 :else
-                                 form))
-                         body)))))
+                   :else
+                   form))
+           body)))))
