@@ -2,7 +2,6 @@
   (:refer-clojure :exclude [empty? get keys seq vals])
   (:require [clojure.core :as clojure]
             [clojure.test :refer [deftest is]]
-            [gen]
             [gen.dynamic :refer [gen]]
             [gen.dynamic.choice-map :as dynamic.choice-map]
             [gen.dynamic.trace :as dynamic.trace]

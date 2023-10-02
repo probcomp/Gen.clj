@@ -4,7 +4,7 @@
             [nextjournal.clerk.viewer :as viewer]))
 
 (defn sleep [ms]
-  #?(:clj (Thread/sleep ms)
+  #?(:clj  (Thread/sleep ms)
      :cljs (js/setTimeout (fn []) ms)))
 
 (def delay
