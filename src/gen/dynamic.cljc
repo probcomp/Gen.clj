@@ -169,6 +169,11 @@
        (-invoke [_ x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 x17 x18 x19 x20 xs]
                 (untraced (apply clojure-fn x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 x17 x18 x19 x20 xs)))]))
 
+;; The following two functions use a brittle form of macro-rewriting; we should
+;; really look at the namespace and local macro environments to try and see if a
+;; particular symbol is bound to `#'gen.dynamic/{trace!,splice!}`. See
+;; https://github.com/InferenceQL/gen.clj/issues/42.
+
 (defn trace-form?
   "Returns true if `form` is a trace form."
   [form]
