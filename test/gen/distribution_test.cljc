@@ -1,9 +1,10 @@
 (ns gen.distribution-test
   (:require [com.gfredericks.test.chuck.clojure-test :refer [checking]]
-            [clojure.test :refer [is testing]]
+            [clojure.test :refer [deftest is testing]]
             [clojure.test.check.generators :as gen]
             [gen.diff :as diff]
             [gen.distribution :as dist]
+            [gen.dynamic :as dynamic :refer [gen]]
             [gen.dynamic.choice-map :as choice-map]
             [gen.generative-function :as gf]
             [gen.trace :as trace]
@@ -182,3 +183,17 @@
                     "Inside the bounds, log-l*range == 1.0")
                 (is (= ##-Inf log-l)
                     "Outside the bounds, (log 0.0)")))))
+
+(deftest deterministic-tests
+  (checking "(log of the) Beta function is symmetrical"
+            [v gen/any-equatable]
+            (let [f (gen [] (dynamic/trace! :k dist/delta v))
+                  {:keys [trace weight]} (gf/generate f [])]
+              (is (= {:k v} (into {} trace))
+                  "The delta distribution always samples its argument.")
+
+              (is (= 0.0 weight)
+                  "The weight is always 0.0 == Log(1)")))
+
+  (testing "delta distribution"
+    (delta-tests dist/delta-distribution)))

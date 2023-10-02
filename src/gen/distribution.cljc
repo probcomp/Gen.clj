@@ -1,7 +1,8 @@
 (ns gen.distribution
   "Collection of protocols and functions for working with primitive
   distributions."
-  (:require [gen.dynamic.choice-map :as cm]
+  (:require [gen.distribution.math.log-likelihood :as ll]
+            [gen.dynamic.choice-map :as cm]
             [gen.generative-function :as gf]
             [gen.dynamic.trace :as trace])
   #?(:clj
@@ -184,3 +185,16 @@
     v)`"
   [ctor encode decode]
   (comp #(->Encoded % encode decode) ctor))
+
+(defn delta-distribution
+  "Deterministic distribution"
+  [x]
+  (reify
+    Sample
+    (sample [_] x)
+
+    LogPDF
+    (logpdf [_ v] (ll/delta x v))))
+
+(def delta
+  (->GenerativeFn delta-distribution))
