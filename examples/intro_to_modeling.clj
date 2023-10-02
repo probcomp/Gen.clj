@@ -1,13 +1,15 @@
 ^{:nextjournal.clerk/visibility {:code :hide :result :hide}}
 (ns intro-to-modeling
   {:nextjournal.clerk/toc true}
-  (:require [gen]
-            [gen.choice-map]
-            [gen.dynamic :refer [gen]]
+  (:require [gen.choice-map]
+            [gen.dynamic :as dynamic :refer [gen]]
+            [gen.dynamic.choice-map :refer [choice-map]]
             [gen.clerk.callout :as callout]
             [gen.clerk.viewer :as viewer]
-            [gen.distribution.commons-math :as dist]
+            [gen.distribution.kixi :as dist]
             [gen.generative-function :as gf]
+            [gen.inference.importance :as importance]
+            [gen.trace :as trace]
             [nextjournal.clerk :as clerk]))
 
 ;; # Tutorial: Introduction to modeling in Gen.clj
@@ -87,8 +89,7 @@
 ;; required with:
 ;;
 ;; ```clojure
-;; (require '[gen]
-;;          '[gen.dynamic :refer [gen]])
+;; (require '[gen.dynamic :as dynamic :refer [gen]])
 ;; ```
 
 ;; Gen programs typically consist of a combination of (i) probabilistic models
@@ -122,7 +123,7 @@
 
 ^{::clerk/viewer viewer/delay ::clerk/width :wide}
 (def delay-example
-  (delay (Thread/sleep 5000)
+  (delay (viewer/sleep 5000)
          :done))
 
 ;; ## 2. Writing a probabilistic model as a generative function
@@ -159,7 +160,7 @@
 ;; special syntax that annotates them with an _address_:
 
 ;; ``` clojure
-;; (gen/trace addr distribution parameters)
+;; (dynamic/trace! addr distribution parameters)
 ;; ```
 
 ;; A simple example of such an invocation is a normal distribution parametrized
@@ -169,7 +170,8 @@
 ;; (require '[gen.distribution.commons-math :as dist])
 ;; ```
 
-(def my-variable (gen/trace :my-variable-address dist/normal 0 1))
+(comment
+  (def my-variable (dynamic/trace! :my-variable-address dist/normal 0 1)))
 
 ;; Every random choice must be given an _address_, which can be an arbitrary
 ;; value—but we often use a keyword.  (`:my-variable-address` is a keyword in
@@ -177,28 +179,29 @@
 ;; random choice, which is distinct from the name of the variable. For example,
 ;; consider the following code:
 
-(let [x (gen/trace :initial-x dist/normal 0 1)]
-(if (< x 0)
-  (+ x (gen/trace :addition-to-x dist/normal 2 1))
-  x))
+(comment
+  (let [x (dynamic/trace! :initial-x dist/normal 0 1)]
+    (if (< x 0)
+      (+ x (dynamic/trace! :addition-to-x dist/normal 2 1))
+      x)))
 
 ;; This code manipulates a single variable, `x`, but may make up to two random
 ;; choices: `:initial-x` and `:addition-to-x`.
 
-;; Note that we can only use `gen/trace` to give addresses to _random choices_.
-;; The following will _not_ work because the code is trying to trace the
-;; expression `sin(x)` which is an invocation of an ordinary Clojure function,
-;; not a distribution.
+;; Note that we can only use `dynamic/trace!` to give addresses to _random
+;; choices_. The following will _not_ work because the code is trying to trace
+;; the expression `sin(x)` which is an invocation of an ordinary Clojure
+;; function, not a distribution.
 
 ;; ```Clojure
 ;; # INVALID:
-;; (def my-variable (gen/trace :not-a-random-choice clojure.math/sin x))
+;; (def my-variable (dynamic/trace! :not-a-random-choice clojure.math/sin x))
 ;; ```
 
-;; (We will see a bit later that it is _also_ possible to use gen/trace to
+;; (We will see a bit later that it is _also_ possible to use dynamic/trace! to
 ;; sample from helper _generative functions_, not just primitive distributions
-;; like `normal`. But for now, think of `gen/trace` as being for making random
-;; choices.)
+;; like `normal`. But for now, think of `dynamic/trace!` as being for making
+;; random choices.)
 
 ;; ### Example: Bayesian linear regression
 
@@ -218,34 +221,34 @@
 
 ^{::clerk/visibility {:result :hide}}
 (def line-model
-(gen [xs]
+  (gen [xs]
 
-  ;; We begin by sampling a slope and intercept for the line.  Before we have
-  ;; seen the data, we don't know the values of these parameters, so we treat
-  ;; them as random choices. The distributions they are drawn from represent our
-  ;; prior beliefs about the parameters: in this case, that neither the slope
-  ;; nor the intercept will be more than a couple points away from 0.
+    ;; We begin by sampling a slope and intercept for the line.  Before we have
+    ;; seen the data, we don't know the values of these parameters, so we treat
+    ;; them as random choices. The distributions they are drawn from represent our
+    ;; prior beliefs about the parameters: in this case, that neither the slope
+    ;; nor the intercept will be more than a couple points away from 0.
 
-  (let [slope (gen/trace :slope dist/normal 0 1)
-        intercept (gen/trace :intercept dist/normal 0 2)
+    (let [slope (dynamic/trace! :slope dist/normal 0 1)
+          intercept (dynamic/trace! :intercept dist/normal 0 2)
 
-        ;; We define a function to compute y for a given x.
+          ;; We define a function to compute y for a given x.
 
-        y (fn [x]
-            (+ (* slope x)
-               intercept))]
+          y (fn [x]
+              (+ (* slope x)
+                 intercept))]
 
-    ;; Given the slope and intercept, we can sample y coordinates for each of
-    ;; the x coordinates in our input vector.
+      ;; Given the slope and intercept, we can sample y coordinates for each of
+      ;; the x coordinates in our input vector.
 
-    (doseq [[i x] (map vector (range) xs)]
-      (gen/trace [:y i] dist/normal (y x) 0.1))
+      (doseq [[i x] (map vector (range) xs)]
+        (dynamic/trace! [:y i] dist/normal (y x) 0.1))
 
-    ;; Most of the time, we don't care about the return
-    ;; value of a model, only the random choices it makes.
-    ;; It can sometimems be useful to return something
-    ;; meaningful, however; here, we return the function `y`.
-    y)))
+      ;; Most of the time, we don't care about the return
+      ;; value of a model, only the random choices it makes.
+      ;; It can sometimems be useful to return something
+      ;; meaningful, however; here, we return the function `y`.
+      y)))
 
 ;; The generative function takes as an argument a vector of x-coordinates. We
 ;; create one below:
@@ -270,7 +273,7 @@
 ;; This gives us the return value of the model, but we may be more interested in
 ;; _the values of the random choices_ that `line_model` makes. **Crucially, each
 ;; random choice is annotated with a unique *address*.** A random choice is
-;; assigned an address using the `(gen/trace addr ...)` form. Addresses can be
+;; assigned an address using the `(dynamic/trace! addr ...)` form. Addresses can be
 ;; any Clojure value.  In this program, there are two types of addresses used --
 ;; Clojure keywords and vectors of keywords and integers. Note that within the
 ;; `map-indexed` loop, the same line of code is executed multiple times, but
@@ -296,9 +299,11 @@
 ;; execution of the function. For example, it contains the arguments on which
 ;; the function was run, which are available with the API method
 ;; `gen.trace/args`:
+;;
+;; ```clojure
+;; (require '[gen.trace :as trace])
+;; ```
 
-^{::clerk/visibility {:result :hide}}
-(require '[gen.trace :as trace])
 
 (trace/args trace)
 
@@ -455,7 +460,7 @@ math/PI
 
       (dotimes [i (count xs)]
         (let [x (nth xs i)]
-          (gen/trace [:y i] dist/normal (y x) 0.1)))
+          (dynamic/trace! [:y i] dist/normal (y x) 0.1)))
 
       y))) ; We return the `y` function so it can be used for plotting, below.
 
@@ -496,9 +501,9 @@ math/PI
 (comment
   (def sine-model
     (gen [xs]
-      (let [period (gen/trace :period dist/gamma 1 1)
-            amplitude (gen/trace :amplitude dist/gamma 1 1)
-            phase (gen/trace :phase dist/uniform 0 (* 2 math/PI))
+      (let [period (dynamic/trace! :period dist/gamma 1 1)
+            amplitude (dynamic/trace! :amplitude dist/gamma 1 1)
+            phase (dynamic/trace! :phase dist/uniform 0 (* 2 math/PI))
 
             ;; Define a deteriministic sine wave with the values above.
             y (fn  [x]
@@ -510,7 +515,7 @@ math/PI
 
         (dotimes [i (count xs)]
           (let [x (nth xs i)]
-            (gen/trace [:y i] dist/normal (y x) 0.1)))
+            (dynamic/trace! [:y i] dist/normal (y x) 0.1)))
 
         y))))
 
@@ -578,7 +583,10 @@ math/PI
 
 {::clerk/visibility {:result :hide}}
 
-(require '[gen.inference.importance :as importance])
+;; ```clojure
+;; (require '[gen.inference.importance :as importance]
+;;          '[gen.dynamic.choice-map :refer [choice-map]])
+;; ```
 
 (defn do-inference
   [model xs ys amount-of-computation]
@@ -587,7 +595,7 @@ math/PI
   ;; them to be inferred.
   (let [observations (reduce (fn [observations [i y]]
                                (assoc observations [:y i] y))
-                             #gen/choice-map {}
+                             (choice-map {})
                              (map-indexed vector ys))]
     (:trace (importance/resampling model [xs] observations amount-of-computation))))
 
@@ -646,14 +654,14 @@ math/PI
 
 ;; What if we'd want to predict `ys` given `xs`?
 
-;; Using the API method `gen.generative-fucntion/generate`, we can generate a
+;; Using the API method `gen.generative-function/generate`, we can generate a
 ;; trace of a generative function in which the values of certain random choices
 ;; are constrained to given values. The constraints are a choice map that maps
 ;; the addresses of the constrained random choices to their desired values.
 
 ;; For example:
 
-(def predicting-constraints #gen/choice-map {:slope 0 :intercept 0})
+(def predicting-constraints (choice-map {:slope 0 :intercept 0}))
 (def predicting-trace (:trace (gf/generate line-model [xs] predicting-constraints)))
 
 (def predict-opts
@@ -685,7 +693,7 @@ math/PI
   ;; constraints.
   (let [constraints (reduce (fn [cm param-addr]
                               (assoc cm param-addr (get trace param-addr)))
-                            #gen/choice-map {}
+                            (choice-map {})
                             param-addrs)
 
         ;; Run the model with new x coordinates, and with parameters
@@ -789,14 +797,14 @@ math/PI
 ^{::clerk/visibility {:result :hide}}
 (def line-model-fancy
   (gen [xs]
-    (let [slope (gen/trace :slope dist/normal 0 1)
-          intercept (gen/trace :intercept dist/normal 0 2)
+    (let [slope (dynamic/trace! :slope dist/normal 0 1)
+          intercept (dynamic/trace! :intercept dist/normal 0 2)
           y (fn [x]
               (+ (* slope x)
                  intercept))
-          noise (gen/trace :noise dist/gamma 1 1)]
+          noise (dynamic/trace! :noise dist/gamma 1 1)]
       (doseq [[i x] (map-indexed vector xs)]
-        (gen/trace [:y i] dist/normal (y x) noise))
+        (dynamic/trace! [:y i] dist/normal (y x) noise))
       y)))
 
 ;; Then, we compare the predictions using inference of the unmodified and
@@ -849,7 +857,7 @@ math/PI
               ;; < your code here >
               x)]
       (doseq [[i x] (map-indexed vector xs)]
-        (gen/trace [:y i] dist/normal (y x) 0.1))
+        (dynamic/trace! [:y i] dist/normal (y x) 0.1))
       y)))
 
 ;; Experiment with the vaue of `ex-4-1-computation` below.
@@ -874,10 +882,10 @@ math/PI
 (comment
   (def sine-model-fancy
     (gen [xs]
-      (let [period (gen/trace :period dist/gamma 5 1)
-            amplitude (gen/trace :amplitude dist/gamma 1 1)
-            phase (gen/trace :phase dist/uniform 0 (* 2 math/PI))
-            noise (gen/trace :noise dist/gamma 1 1)
+      (let [period (dynamic/trace! :period dist/gamma 5 1)
+            amplitude (dynamic/trace! :amplitude dist/gamma 1 1)
+            phase (dynamic/trace! :phase dist/uniform 0 (* 2 math/PI))
+            noise (dynamic/trace! :noise dist/gamma 1 1)
             y (fn [x]
                 (* amplitude
                    (math/sin (+ (* x
@@ -885,7 +893,7 @@ math/PI
                                       period))
                                 phase))))]
         (doseq [[i x] (map-indexed vector xs)]
-          (gen/trace [:y i] dist/normal (y x) noise)))
+          (dynamic/trace! [:y i] dist/normal (y x) noise)))
       y)))
 
 ;; ## 5. Calling other generative functions
@@ -900,37 +908,37 @@ math/PI
 ;; ways:
 
 ;; 1. **(NOT RECOMMENDED)** using regular Clojure function call syntax: `(f x)`
-;; 2. using `gen/trace` with an address for the call: `(gen/trace :addr f x)` 3.
-;; using `gen/splice`, which does not require an address: `(gen/splice f x)`
+;; 2. using `dynamic/trace!` with an address for the call: `(dynamic/trace! :addr f x)`
+;; 3. using `dynamic/splice!`, which does not require an address: `(dynamic/splice! f x)`
 
 ;; When invoking using regular function call syntax, the random choices made by
 ;; the callee function are not traced at all, and Gen cannot reason about them
-;; during inference.  When invoking using `gen/splice` the random choices of the
-;; callee function are imported directly into the caller's trace. So, for
+;; during inference. When invoking using `dynamic/splice!` the random choices of
+;; the callee function are imported directly into the caller's trace. So, for
 ;; example, if `f` makes a choice called `:f-choice`, then the caller's trace
-;; will have a choice called `:f-choice` too.  Note that a downside of this is
+;; will have a choice called `:f-choice` too. Note that a downside of this is
 ;; that if `f` is called _twice_ by the same caller, then the two choices called
 ;; `:f-choice` will clash, leading to an error. In this case, it is best to
-;; provide an address (`(gen/trace addr f)`): `f`'s random choices will be
-;; placed under the _key_ `addr`.
+;; provide an address (`(dynamic/trace! addr f)`): `f`'s random choices will
+;; be placed under the _key_ `addr`.
 
 (def foo
   (gen []
-    (gen/trace :y dist/normal 0 1)))
+    (dynamic/trace! :y dist/normal 0 1)))
 
 (def bar
   (gen []
-    (gen/trace :x dist/bernoulli 0.5)
-    ;; Call `foo` with `gen/splice`. Its choices (`:y`) will appear directly
+    (dynamic/trace! :x dist/bernoulli 0.5)
+    ;; Call `foo` with `dynamic/splice!`. Its choices (`:y`) will appear directly
     ;; within the trace of `bar`.
-    (gen/splice foo)))
+    (dynamic/splice! foo)))
 
 (def bar-with-key
   (gen []
-    (gen/trace :x dist/bernoulli 0.5)
+    (dynamic/trace! :x dist/bernoulli 0.5)
     ;; Call `foo` with the address `:z`.  The internal choice `:y` of `foo` will
     ;; appear in our trace at the hierarchical address `[:z :y]`.
-    (gen/trace :z foo)))
+    (dynamic/trace! :z foo)))
 
 ;; We first show the addresses sampled by `bar`:
 
@@ -941,8 +949,8 @@ math/PI
 (def bar-with-key-trace (gf/simulate bar-with-key []))
 (trace/choices bar-with-key-trace)
 
-;; Using `gen/trace` instead of `gen/splice` can help avoid address collisions
-;; for complex models.
+;; Using `dynamic/trace!` instead of `dynamic/splice!` can help avoid address
+;; collisions for complex models.
 
 ;; Hierarchical traces are represented using nested choice maps
 ;; (`gen.dynamic.choice-map/ChoiceMap`). Hierarchical addresses can be accessed
@@ -956,13 +964,13 @@ math/PI
 
 (def combined-model
   (gen [xs]
-    (if (gen/trace :is-line dist/bernoulli 0.5)
+    (if (dynamic/trace! :is-line dist/bernoulli 0.5)
       ;; Call `line-model-fancy` on xs, and import its random choices directly
       ;; into our trace.
-      (gen/splice line-model-fancy xs)
+      (dynamic/splice! line-model-fancy xs)
       ;; Call `sine-model-fancy` on xs, and import its random choices directly
       ;; into our trace.
-      (gen/splice sine-model-fancy xs))))
+      (dynamic/splice! sine-model-fancy xs))))
 
 ;; We visualize some traces, and see that sometimes it samples linear data and
 ;; other times sinusoidal data.
@@ -1096,15 +1104,15 @@ math/PI
 
 (def generate-segments
   (gen [lower upper]
-    (if (gen/trace :is-leaf dist/bernoulli 0.7)
-      (let [value (gen/trace :value dist/normal 0 1)]
+    (if (dynamic/trace! :is-leaf dist/bernoulli 0.7)
+      (let [value (dynamic/trace! :value dist/normal 0 1)]
         #:node{:interval [lower upper] :value value})
-      (let [frac (gen/trace :frac dist/beta 2 2)
+      (let [frac (dynamic/trace! :frac dist/beta 2 2)
             mid (+ lower
                    (* (- upper lower)
                       frac))
-            left (gen/trace :left generate-segments lower mid)
-            right (gen/trace :right generate-segments mid upper)]
+            left (dynamic/trace! :left generate-segments lower mid)
+            right (dynamic/trace! :right generate-segments mid upper)]
         #:node{:interval [lower upper]
                :left left
                :right right}))))
@@ -1189,11 +1197,12 @@ math/PI
   (gen [xs]
     (let [lower (apply min xs)
           upper (apply max xs)
-          node (gen/trace :tree generate-segments lower upper)
-          noise (gen/trace :noise dist/gamma 0.5 0.5)]
+          node (dynamic/trace! :tree generate-segments lower upper)
+          noise (dynamic/trace! :noise dist/gamma 0.5 0.5)]
       (doseq [[i x] (map-indexed vector xs)]
-        (gen/trace [:y i] dist/normal (get-value-at x node)
-                                       noise))
+        (dynamic/trace! [:y i]
+                        dist/normal (get-value-at x node)
+                        noise))
       node)))
 
 ;; We write a visualization for `changepoint-model` below:
@@ -1267,19 +1276,10 @@ math/PI
 
 ;; ### 6.2 Exercise
 
-;; Write a new version of `changepoint_model` that uses `gen/splice` without an
-;; address to make the recursive calls.
+;; Write a new version of `changepoint_model` that uses `dynamic/splice!`
+;; without an address to make the recursive calls.
 
 ^{::clerk/visibility {:code :hide}}
 (callout/hint
  "You will need to guarantee that all addresses are unique. How can you label
   each node in a binary tree using an integer?")
-
-^{::clerk/visibility {:code :hide :result :hide}}
-(comment
-
-  (clerk/serve! {:browse? true})
-
-  (clerk/show! "examples/intro_to_modeling.clj")
-
-  ,)

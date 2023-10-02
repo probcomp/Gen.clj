@@ -2,8 +2,8 @@
   {:nextjournal.clerk/toc true}
   (:require [clojure.math :as math]
             [clojure.repl :as repl]
-            [gen]
             [gen.distribution.commons-math :as dist]
+            [gen.dynamic :as dynamic :refer [gen]]
             [gen.generative-function :as gf]
             [gen.trace :as trace]
             [nextjournal.clerk :as clerk]))
@@ -241,27 +241,29 @@
 ;; (i.e. record the value of each choice in a trace data structure) is one of
 ;; the basic features of Gen's built-in modeling language. To write a function
 ;; in this language we use the `gen.dynamic/gen` macro provided by Gen.
-
-(require '[gen.dynamic :refer [gen]])
+;;
+;; ```clojure
+;; (require '[gen.dynamic :as dynamic :refer [gen]])
+;; ```
 
 (def gen-f
   (gen [p]
-    (let [n0 (gen/trace :n0 dist/uniform-discrete 1 10)
-          n1 (if (gen/trace :if-test dist/bernoulli p)
+    (let [n0 (dynamic/trace! :n0 dist/uniform-discrete 1 10)
+          n1 (if (dynamic/trace! :if-test dist/bernoulli p)
                (* n0 2)
                n0)]
-      (gen/trace :fp dist/categorical (for [i (range 1 21)]
-                                        (if (= i n1)
-                                          0.5
-                                          (/ 0.5 19)))))))
+      (dynamic/trace! :fp dist/categorical (for [i (range 1 21)]
+                                             (if (= i n1)
+                                               0.5
+                                               (/ 0.5 19)))))))
 
-;; The `(gen/trace address distribution args...)` expression records the value
-;; of the given random choice at the given address into an implicit trace data
-;; structure. The trace data structure itself is not a variable in the function,
-;; and that code in the body of the function cannot read from the trace. It is
-;; an error to use this syntax with the same address twice. Addresses can be
-;; arbitrary Clojure values. In this notebook, all the addresses will be Clojure
-;; keywords.
+;; The `(dynamic/trace! address distribution args...)` expression records the
+;; value of the given random choice at the given address into an implicit trace
+;; data structure. The trace data structure itself is not a variable in the
+;; function, and that code in the body of the function cannot read from the
+;; trace. It is an error to use this syntax with the same address twice.
+;; Addresses can be arbitrary Clojure values. In this notebook, all the
+;; addresses will be Clojure keywords.
 
 ;; Also note that the trace is not part of the return value:
 
@@ -334,10 +336,10 @@
 
 (def foo
   (gen [prob-a]
-    (let [a-b (or (not (gen/trace :a dist/bernoulli prob-a))
-                  (gen/trace :b dist/bernoulli 0.6))
+    (let [a-b (or (not (dynamic/trace! :a dist/bernoulli prob-a))
+                  (dynamic/trace! :b dist/bernoulli 0.6))
           prob-c (if a-b 0.9 0.2)]
-      (and (gen/trace :c dist/bernoulli prob-c)
+      (and (dynamic/trace! :c dist/bernoulli prob-c)
            a-b))))
 
 (trace/choices (gf/simulate foo [0.3]))
@@ -500,12 +502,12 @@
 
 ;; The specific internal proposal distribution used by `gen.dynamic/gen`
 ;; functions is based on **ancestral sampling**, which operates as follows: We
-;; run the function. To evaluate a `gen/trace` expression, we look up the
+;; run the function. To evaluate a `dynamic/trace!` expression, we look up the
 ;; address in the constraints choice map. If the address is present in the
 ;; constraints choice map, we deterministically return the value stored in the
 ;; constraints for that address. If the address is not present in the
-;; constraints, we sample the value from the distribution in the `gen/trace`
-;; expression.  For the function `foo`, with constraints
+;; constraints, we sample the value from the distribution in the
+;; `dynamic/trace!` expression. For the function `foo`, with constraints
 ;; $u = \{a \mapsto \text{true}, c \mapsto \text{false}\}$,
 ;; the internal proposal distribution is:
 

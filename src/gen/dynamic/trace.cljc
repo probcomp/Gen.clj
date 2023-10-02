@@ -45,12 +45,6 @@
   []
   *splice*)
 
-(defmacro without-tracing
-  [& body]
-  `(binding [*trace* no-op
-             *splice* no-op]
-     ~@body))
-
 (declare assoc-subtrace update-trace trace =)
 
 (deftype Trace [gf args subtraces retval]
@@ -211,7 +205,7 @@
       (update :weight + weight)
       (cond-> discard (update :discard assoc k discard))))
 
-(defn update-trace [this constraints]
+(defn update-trace [^Trace this constraints]
   (let [gf (trace/gf this)
         state (atom {:trace (trace gf (trace/args this))
                      :weight 0
