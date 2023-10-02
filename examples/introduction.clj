@@ -246,16 +246,16 @@
 
 (def gen-f
   (gen [p]
-    (let [n0 (gen/trace :n0 (dist/uniform-discrete 1 10))
-          n1 (if (gen/trace :if-test (dist/bernoulli p))
+    (let [n0 (gen/trace :n0 dist/uniform-discrete 1 10)
+          n1 (if (gen/trace :if-test dist/bernoulli p)
                (* n0 2)
                n0)]
-      (gen/trace :fp (dist/categorical (for [i (range 1 21)]
-                                         (if (= i n1)
-                                           0.5
-                                           (/ 0.5 19))))))))
+      (gen/trace :fp dist/categorical (for [i (range 1 21)]
+                                        (if (= i n1)
+                                          0.5
+                                          (/ 0.5 19)))))))
 
-;; The `(gen/trace address (distribution args...))` expression records the value
+;; The `(gen/trace address distribution args...)` expression records the value
 ;; of the given random choice at the given address into an implicit trace data
 ;; structure. The trace data structure itself is not a variable in the function,
 ;; and that code in the body of the function cannot read from the trace. It is
@@ -334,10 +334,10 @@
 
 (def foo
   (gen [prob-a]
-    (let [a-b (or (not (gen/trace :a (dist/bernoulli prob-a)))
-                  (gen/trace :b (dist/bernoulli 0.6)))
+    (let [a-b (or (not (gen/trace :a dist/bernoulli prob-a))
+                  (gen/trace :b dist/bernoulli 0.6))
           prob-c (if a-b 0.9 0.2)]
-      (and (gen/trace :c (dist/bernoulli prob-c))
+      (and (gen/trace :c dist/bernoulli prob-c)
            a-b))))
 
 (trace/choices (gf/simulate foo [0.3]))

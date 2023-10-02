@@ -159,7 +159,7 @@
 ;; special syntax that annotates them with an _address_:
 
 ;; ``` clojure
-;; (gen/trace addr (distribution parameters))
+;; (gen/trace addr distribution parameters)
 ;; ```
 
 ;; A simple example of such an invocation is a normal distribution parametrized
@@ -169,7 +169,7 @@
 ;; (require '[gen.distribution.commons-math :as dist])
 ;; ```
 
-(def my-variable (gen/trace :my-variable-address (dist/normal 0 1)))
+(def my-variable (gen/trace :my-variable-address dist/normal 0 1))
 
 ;; Every random choice must be given an _address_, which can be an arbitrary
 ;; value—but we often use a keyword.  (`:my-variable-address` is a keyword in
@@ -177,9 +177,9 @@
 ;; random choice, which is distinct from the name of the variable. For example,
 ;; consider the following code:
 
-(let [x (gen/trace :initial-x (dist/normal 0 1))]
+(let [x (gen/trace :initial-x dist/normal 0 1)]
 (if (< x 0)
-  (+ x (gen/trace :addition-to-x (dist/normal 2 1)))
+  (+ x (gen/trace :addition-to-x dist/normal 2 1))
   x))
 
 ;; This code manipulates a single variable, `x`, but may make up to two random
@@ -192,7 +192,7 @@
 
 ;; ```Clojure
 ;; # INVALID:
-;; (def my-variable (gen/trace :not-a-random-choice (clojure.math/sin x)))
+;; (def my-variable (gen/trace :not-a-random-choice clojure.math/sin x))
 ;; ```
 
 ;; (We will see a bit later that it is _also_ possible to use gen/trace to
@@ -226,8 +226,8 @@
   ;; prior beliefs about the parameters: in this case, that neither the slope
   ;; nor the intercept will be more than a couple points away from 0.
 
-  (let [slope (gen/trace :slope (dist/normal 0 1))
-        intercept (gen/trace :intercept (dist/normal 0 2))
+  (let [slope (gen/trace :slope dist/normal 0 1)
+        intercept (gen/trace :intercept dist/normal 0 2)
 
         ;; We define a function to compute y for a given x.
 
@@ -239,7 +239,7 @@
     ;; the x coordinates in our input vector.
 
     (doseq [[i x] (map vector (range) xs)]
-      (gen/trace [:y i] (dist/normal (y x) 0.1)))
+      (gen/trace [:y i] dist/normal (y x) 0.1))
 
     ;; Most of the time, we don't care about the return
     ;; value of a model, only the random choices it makes.
@@ -455,7 +455,7 @@ math/PI
 
       (dotimes [i (count xs)]
         (let [x (nth xs i)]
-          (gen/trace [:y i] (dist/normal (y x) 0.1))))
+          (gen/trace [:y i] dist/normal (y x) 0.1)))
 
       y))) ; We return the `y` function so it can be used for plotting, below.
 
@@ -496,9 +496,9 @@ math/PI
 (comment
   (def sine-model
     (gen [xs]
-      (let [period (gen/trace :period (dist/gamma 1 1))
-            amplitude (gen/trace :amplitude (dist/gamma 1 1))
-            phase (gen/trace :phase (dist/uniform 0 (* 2 math/PI)))
+      (let [period (gen/trace :period dist/gamma 1 1)
+            amplitude (gen/trace :amplitude dist/gamma 1 1)
+            phase (gen/trace :phase dist/uniform 0 (* 2 math/PI))
 
             ;; Define a deteriministic sine wave with the values above.
             y (fn  [x]
@@ -510,7 +510,7 @@ math/PI
 
         (dotimes [i (count xs)]
           (let [x (nth xs i)]
-            (gen/trace [:y i] (dist/normal (y x) 0.1))))
+            (gen/trace [:y i] dist/normal (y x) 0.1)))
 
         y))))
 
@@ -789,14 +789,14 @@ math/PI
 ^{::clerk/visibility {:result :hide}}
 (def line-model-fancy
   (gen [xs]
-    (let [slope (gen/trace :slope (dist/normal 0 1))
-          intercept (gen/trace :intercept (dist/normal 0 2))
+    (let [slope (gen/trace :slope dist/normal 0 1)
+          intercept (gen/trace :intercept dist/normal 0 2)
           y (fn [x]
               (+ (* slope x)
                  intercept))
-          noise (gen/trace :noise (dist/gamma 1 1))]
+          noise (gen/trace :noise dist/gamma 1 1)]
       (doseq [[i x] (map-indexed vector xs)]
-        (gen/trace [:y i] (dist/normal (y x) noise)))
+        (gen/trace [:y i] dist/normal (y x) noise))
       y)))
 
 ;; Then, we compare the predictions using inference of the unmodified and
@@ -849,7 +849,7 @@ math/PI
               ;; < your code here >
               x)]
       (doseq [[i x] (map-indexed vector xs)]
-        (gen/trace [:y i] (dist/normal (y x) 0.1)))
+        (gen/trace [:y i] dist/normal (y x) 0.1))
       y)))
 
 ;; Experiment with the vaue of `ex-4-1-computation` below.
@@ -874,10 +874,10 @@ math/PI
 (comment
   (def sine-model-fancy
     (gen [xs]
-      (let [period (gen/trace :period (dist/gamma 5 1))
-            amplitude (gen/trace :amplitude (dist/gamma 1 1))
-            phase (gen/trace :phase (dist/uniform 0 (* 2 math/PI)))
-            noise (gen/trace :noise (dist/gamma 1 1))
+      (let [period (gen/trace :period dist/gamma 5 1)
+            amplitude (gen/trace :amplitude dist/gamma 1 1)
+            phase (gen/trace :phase dist/uniform 0 (* 2 math/PI))
+            noise (gen/trace :noise dist/gamma 1 1)
             y (fn [x]
                 (* amplitude
                    (math/sin (+ (* x
@@ -885,7 +885,7 @@ math/PI
                                       period))
                                 phase))))]
         (doseq [[i x] (map-indexed vector xs)]
-          (gen/trace [:y i] (dist/normal (y x) noise))))
+          (gen/trace [:y i] dist/normal (y x) noise)))
       y)))
 
 ;; ## 5. Calling other generative functions
@@ -900,8 +900,8 @@ math/PI
 ;; ways:
 
 ;; 1. **(NOT RECOMMENDED)** using regular Clojure function call syntax: `(f x)`
-;; 2. using `gen/trace` with an address for the call: `(gen/trace :addr (f x))`
-;; 3. using `gen/splice`, which does not require an address: `(gen/splice (f x))`
+;; 2. using `gen/trace` with an address for the call: `(gen/trace :addr f x)` 3.
+;; using `gen/splice`, which does not require an address: `(gen/splice f x)`
 
 ;; When invoking using regular function call syntax, the random choices made by
 ;; the callee function are not traced at all, and Gen cannot reason about them
@@ -911,26 +911,26 @@ math/PI
 ;; will have a choice called `:f-choice` too.  Note that a downside of this is
 ;; that if `f` is called _twice_ by the same caller, then the two choices called
 ;; `:f-choice` will clash, leading to an error. In this case, it is best to
-;; provide an address (`(gen/trace addr (f))`): `f`'s random choices will be
+;; provide an address (`(gen/trace addr f)`): `f`'s random choices will be
 ;; placed under the _key_ `addr`.
 
 (def foo
   (gen []
-    (gen/trace :y (dist/normal 0 1))))
+    (gen/trace :y dist/normal 0 1)))
 
 (def bar
   (gen []
-    (gen/trace :x (dist/bernoulli 0.5))
+    (gen/trace :x dist/bernoulli 0.5)
     ;; Call `foo` with `gen/splice`. Its choices (`:y`) will appear directly
     ;; within the trace of `bar`.
-    (gen/splice (foo))))
+    (gen/splice foo)))
 
 (def bar-with-key
   (gen []
-    (gen/trace :x (dist/bernoulli 0.5))
+    (gen/trace :x dist/bernoulli 0.5)
     ;; Call `foo` with the address `:z`.  The internal choice `:y` of `foo` will
     ;; appear in our trace at the hierarchical address `[:z :y]`.
-    (gen/trace :z (foo))))
+    (gen/trace :z foo)))
 
 ;; We first show the addresses sampled by `bar`:
 
@@ -956,13 +956,13 @@ math/PI
 
 (def combined-model
   (gen [xs]
-    (if (gen/trace :is-line (dist/bernoulli 0.5))
+    (if (gen/trace :is-line dist/bernoulli 0.5)
       ;; Call `line-model-fancy` on xs, and import its random choices directly
       ;; into our trace.
-      (gen/splice (line-model-fancy xs))
+      (gen/splice line-model-fancy xs)
       ;; Call `sine-model-fancy` on xs, and import its random choices directly
       ;; into our trace.
-      (gen/splice (sine-model-fancy xs)))))
+      (gen/splice sine-model-fancy xs))))
 
 ;; We visualize some traces, and see that sometimes it samples linear data and
 ;; other times sinusoidal data.
@@ -1096,15 +1096,15 @@ math/PI
 
 (def generate-segments
   (gen [lower upper]
-    (if (gen/trace :is-leaf (dist/bernoulli 0.7))
-      (let [value (gen/trace :value (dist/normal 0 1))]
+    (if (gen/trace :is-leaf dist/bernoulli 0.7)
+      (let [value (gen/trace :value dist/normal 0 1)]
         #:node{:interval [lower upper] :value value})
-      (let [frac (gen/trace :frac (dist/beta 2 2))
+      (let [frac (gen/trace :frac dist/beta 2 2)
             mid (+ lower
                    (* (- upper lower)
                       frac))
-            left (gen/trace :left (generate-segments lower mid))
-            right (gen/trace :right (generate-segments mid upper))]
+            left (gen/trace :left generate-segments lower mid)
+            right (gen/trace :right generate-segments mid upper)]
         #:node{:interval [lower upper]
                :left left
                :right right}))))
@@ -1189,11 +1189,11 @@ math/PI
   (gen [xs]
     (let [lower (apply min xs)
           upper (apply max xs)
-          node (gen/trace :tree (generate-segments lower upper))
-          noise (gen/trace :noise (dist/gamma 0.5 0.5))]
+          node (gen/trace :tree generate-segments lower upper)
+          noise (gen/trace :noise dist/gamma 0.5 0.5)]
       (doseq [[i x] (map-indexed vector xs)]
-        (gen/trace [:y i] (dist/normal (get-value-at x node)
-                                       noise)))
+        (gen/trace [:y i] dist/normal (get-value-at x node)
+                                       noise))
       node)))
 
 ;; We write a visualization for `changepoint-model` below:
