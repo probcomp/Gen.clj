@@ -1,5 +1,5 @@
 (ns user
-  (:require [nextjournal.clerk :as clerk]))
+  (:require [gen.clerk :as clerk]))
 
 (set! *warn-on-reflection* true)
 
@@ -8,10 +8,14 @@
 
 (def notebooks
   ["examples/introduction.clj"
-   "examples/intro_to_modeling.clj"])
+   "examples/intro_to_modeling.clj"
+   "examples/intro_to_modeling/edit.clj"])
 
 (def defaults
-  {:index index})
+  {:index index
+   ;; Enable / uncomment this when working on new components.
+   ;; :cljs-namespaces '[gen.sci-extensions]
+   })
 
 (def serve-defaults
   (assoc defaults
@@ -27,15 +31,11 @@
 (defn serve!
   ([] (serve! {}))
   ([opts]
-   (let [{:keys [browse? index] :as opts} (merge serve-defaults opts)]
-     (when (and browse? index)
-       (clerk/show! index))
-     (clerk/serve! opts))))
+   (clerk/serve!
+    (merge serve-defaults opts))))
 
 (def halt! clerk/halt!)
 
-(defn build!
-  ([] (build! {}))
-  ([opts]
-   (clerk/build!
-    (merge static-defaults opts))))
+(defn build! [opts]
+  (clerk/build!
+   (merge static-defaults opts)))

@@ -1,4 +1,4 @@
-{:deps {:aliases [:test :cljs]}
+{:deps {:aliases [:test :cljs :nextjournal/clerk]}
  :builds {:test
           {:target    :node-test
            :output-to "target/main/node-tests.js"
