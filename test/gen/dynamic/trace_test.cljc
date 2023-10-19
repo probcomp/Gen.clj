@@ -44,6 +44,9 @@
     (is (= :x (trace :addr)))))
 
 (deftest keys
+  (is (= {} (into {} (dynamic.trace/trace (gen []) [])))
+      "iterator works on an empty trace")
+
   (is (= #{:addr}
          (-> (dynamic.trace/trace (gen []) [])
              (dynamic.trace/assoc-subtrace :addr (choice-trace :x))
