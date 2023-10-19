@@ -10,7 +10,7 @@
      (:require-macros [gen.dynamic.trace]))
   #?(:clj
      (:import
-      (clojure.lang Associative IFn IObj IMapIterable Seqable))))
+      (clojure.lang Associative IFn IObj IMapIterable))))
 
 (defn no-op
   ([gf args]
@@ -156,11 +156,9 @@
        (valIterator [this]
                     (.iterator ^Iterable (vals (trace/choices this))))
 
-       java.lang.Iterable
+       Iterable
        (iterator [this]
-                 (.iterator
-                  (let [^Seqable choice-map (trace/choices this)]
-                    ^Iterable (.seq choice-map))))]))
+                 (.iterator ^Iterable (trace/choices this)))]))
 
 (defn ^:no-doc = [^Trace this that]
   (and (instance? Trace that)
