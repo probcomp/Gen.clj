@@ -4,6 +4,7 @@
             [clojure.repl :as repl]
             [gen.distribution.commons-math :as dist]
             [gen.dynamic :as dynamic :refer [gen]]
+            [gen.dynamic.choice-map :as choice-map]
             [gen.generative-function :as gf]
             [gen.trace :as trace]
             [nextjournal.clerk :as clerk]))
@@ -437,17 +438,18 @@
 ;; where `:a` is always true and `:c` is always false. We first construct a
 ;; choice map containing these constraints:
 
-(require '[gen.dynamic.choice-map :as dynamic.choice-map]
-         '[gen.choice-map :as choice-map])
+;; ```clojure
+;; (require '[gen.dynamic.choice-map :as choice-map])
+;; ```
 
 (def constraints
-  (dynamic.choice-map/choice-map
+  (choice-map/choice-map
    :a true
    :c false))
 
 #_
 (choice-map/submaps
- (dynamic.choice-map/choice-map
+ (choice-map/choice-map
   :a true
   :c false))
 
@@ -456,7 +458,7 @@
 ;; choice map and then populating it:
 
 (def choices
-  (assoc (dynamic.choice-map/choice-map)
+  (assoc (choice-map/choice-map)
          :a true
          :c false))
 
@@ -613,7 +615,7 @@
 (def samples
   (let [n-particles [1 10 100]]
     (zipmap n-particles
-            (mapv #(draw-samples % #gen/choice-map {:c false})
+            (mapv #(draw-samples % {:c false})
                   n-particles))))
 
 (clerk/vl {:schema "https://vega.github.io/schema/vega-lite/v5.json"
@@ -696,13 +698,14 @@
 
 ;; Consider the function `foo` from above. Let's obtain an initial trace:
 
-(def update-trace (:trace (gf/generate foo [0.3] #gen/choice-map {:a true :b true :c true})))
+(def update-trace (:trace (gf/generate foo [0.3] {:a true :b true :c true})))
 (trace/choices update-trace)
 
 ;; Now, we use the `update` function, to change the value of `:c` from `true` to
 ;; `false`:
 
-(def updated (trace/update update-trace #gen/choice-map {:c false}))
+
+(def updated (trace/update update-trace {:c false}))
 (trace/choices (:trace updated))
 
 ;; The `update` function returns the new trace, as well as a weight, which the
@@ -726,7 +729,7 @@
 ;; altogether. For example, if we set `:a` to `false`, then choice at address
 ;; `:b` is no longer include in the choice map.
 
-(def update-a-true (trace/update update-trace #gen/choice-map {:a false}))
+(def update-a-true (trace/update update-trace {:a false}))
 (trace/choices (:trace update-a-true))
 
 ;; The *discard* choice map that is returned by `update` contains the valus for

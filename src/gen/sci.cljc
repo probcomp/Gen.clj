@@ -1,7 +1,6 @@
 (ns gen.sci
   "Functions for installation of all namespaces into an SCI context."
-  (:require [gen.choice-map]
-            [gen.clerk.callout]
+  (:require [gen.clerk.callout]
             [gen.clerk.viewer]
             [gen.diff]
             [gen.distribution]
@@ -23,7 +22,6 @@
 (def namespaces
   {'gen.clerk.callout                    (sci/copy-ns gen.clerk.callout (sci/create-ns 'gen.clerk.callout))
    'gen.clerk.viewer                     (sci/copy-ns gen.clerk.viewer (sci/create-ns 'gen.clerk.viewer))
-   'gen.choice-map                       (sci/copy-ns gen.choice-map (sci/create-ns 'gen.choice-map))
    'gen.diff                             (sci/copy-ns gen.diff (sci/create-ns 'gen.diff))
    'gen.distribution                     (sci/copy-ns gen.distribution (sci/create-ns 'gen.distribution))
    'gen.distribution.kixi                (sci/copy-ns gen.distribution.kixi (sci/create-ns 'gen.distribution.kixi))

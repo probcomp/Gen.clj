@@ -1,6 +1,6 @@
 (ns gen.dynamic
   (:require [clojure.walk :as walk]
-            [gen.choice-map :as choice-map]
+            [gen.dynamic.choice-map :as choice-map]
             [gen.dynamic.trace :as dynamic.trace]
             [gen.generative-function :as gf]
             [gen.trace :as trace])
@@ -209,5 +209,6 @@
 (defmacro gen
   "Defines a generative function."
   [& args]
-  {:clj-kondo/lint-as 'clojure.core/fn}
+  {:clj-kondo/lint-as 'clojure.core/fn
+   :style/indent :defn}
   (apply gen-body args))

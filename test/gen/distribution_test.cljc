@@ -56,43 +56,43 @@
 
   (testing "bernoulli-update-weight"
     (is (= 1.0
-           (-> (gf/generate bernoulli-dist [0.3] #gen/choice true)
+           (-> (gf/generate bernoulli-dist [0.3] (choice-map/choice true))
                (:trace)
-               (trace/update #gen/choice true)
+               (trace/update (choice-map/choice true))
                (:weight)
                (Math/exp))))
 
     (is (= (/ 0.7 0.3)
-           (-> (gf/generate bernoulli-dist [0.3] #gen/choice true)
+           (-> (gf/generate bernoulli-dist [0.3] (choice-map/choice true))
                (:trace)
-               (trace/update #gen/choice false)
+               (trace/update (choice-map/choice false))
                (:weight)
                (Math/exp)))))
 
   (testing "bernoulli-update-discard"
     (is (nil?
-         (-> (gf/generate bernoulli-dist [0.3] #gen/choice true)
+         (-> (gf/generate bernoulli-dist [0.3] (choice-map/choice true))
              (:trace)
              (trace/update nil)
              (:discard))))
 
-    (is (= #gen/choice true
-           (-> (gf/generate bernoulli-dist [0.3] #gen/choice true)
+    (is (= (choice-map/choice true)
+           (-> (gf/generate bernoulli-dist [0.3] (choice-map/choice true))
                (:trace)
-               (trace/update #gen/choice false)
+               (trace/update (choice-map/choice false))
                (:discard)))))
 
   (testing "bernoulli-update-change"
     (is (= diff/unknown-change
-           (-> (gf/generate bernoulli-dist [0.3] #gen/choice true)
+           (-> (gf/generate bernoulli-dist [0.3] (choice-map/choice true))
                (:trace)
                (trace/update nil)
                (:change))))
 
     (is (= diff/unknown-change
-           (-> (gf/generate bernoulli-dist [0.3] #gen/choice true)
+           (-> (gf/generate bernoulli-dist [0.3] (choice-map/choice true))
                (:trace)
-               (trace/update #gen/choice false)
+               (trace/update (choice-map/choice false))
                (:change))))))
 
 (defn cauchy-tests [->cauchy]

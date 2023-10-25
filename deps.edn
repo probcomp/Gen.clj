@@ -1,7 +1,8 @@
 {:paths ["src" "resources"]
 
  :deps
- {kixi/stats {:mvn/version "0.5.5"}
+ {clj-http/clj-http {:mvn/version "3.12.3"}
+  kixi/stats {:mvn/version "0.5.5"}
   org.apache.commons/commons-math3 {:mvn/version "3.6.1"}
   org.clojure/clojure {:mvn/version "1.11.1"}
   org.mentat/clerk-utils {:mvn/version "0.6.0"}}

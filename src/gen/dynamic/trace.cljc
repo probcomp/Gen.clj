@@ -1,7 +1,6 @@
 (ns gen.dynamic.trace
   (:refer-clojure :exclude [=])
   (:require [clojure.core :as core]
-            [gen.choice-map :as choice-map]
             [gen.diff :as diff]
             [gen.dynamic.choice-map :as cm]
             [gen.generative-function :as gf]
@@ -54,7 +53,8 @@
 
   trace/Choices
   (choices [_]
-    (cm/->ChoiceMap (update-vals subtraces trace/choices)))
+    (cm/unwrap
+     (update-vals subtraces trace/choices)))
 
   trace/GenFn
   (gf [_]
@@ -207,7 +207,7 @@
   (let [gf (trace/gf this)
         state (atom {:trace (trace gf (trace/args this))
                      :weight 0
-                     :discard (cm/choice-map)})]
+                     :discard {}})]
     (binding [*splice*
               (fn [& _]
                 (throw (ex-info "Not yet implemented." {})))
@@ -215,7 +215,7 @@
               *trace*
               (fn [k gf args]
                 (validate-empty! (:trace @state) k)
-                (let [k-constraints (get (choice-map/submaps constraints) k)
+                (let [k-constraints (get (cm/submaps constraints) k)
                       {subtrace :trace :as ret}
                       (if-let [prev-subtrace (get (.-subtraces this) k)]
                         (trace/update prev-subtrace k-constraints)

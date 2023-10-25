@@ -1,20 +1,27 @@
-(ns gen.dynamic.choice-map
-  (:require [gen.choice-map :as choice-map])
-  #?(:clj
-     (:import (clojure.lang Associative IFn IObj IPersistentMap
-                            IMapIterable MapEntry))))
+(ns gen.dynamic.choice-map)
 
-;; https://blog.wsscode.com/guide-to-custom-map-types/
-;; https://github.com/originrose/lazy-map/blob/119dda207fef90c1e26e6c01aa63e6cfb45c1fa8/src/lazy_map/core.clj#L197-L278
+;; [x] Gen.get_value — Function. ; (get (values cm) k)
+;; [x] Gen.has_value — Function. ; (contains? (values cm) k)
+;; [x] Gen.get_submap — Function. ; (get (submaps cm) k)
+;; [x] Gen.get_values_shallow — Function. ; (values cm)
+;; [x] Gen.get_value — Function. (get (values cm) k)
+;; [x] Gen.get_submaps_shallow — Function. ; (submaps cm)
+;; [x] Gen.to_array — Function. ; (into [] (values cm))
+;; [ ] Gen.from_array — Function.
+;; [ ] Gen.get_selected — Function.
 
-(defrecord Choice [choice]
-  choice-map/Value
-  (value [_] choice))
+(defrecord Choice [choice])
+
+(defn value
+  "Returns the current choice TODO complete!"
+  [choice]
+  (when (instance? Choice choice)
+    (:choice choice)))
 
 #?(:clj
    (defmethod print-method Choice [choice ^java.io.Writer w]
      (.write w "#gen/choice ")
-     (.write w (pr-str (choice-map/value choice)))))
+     (.write w (pr-str (value choice)))))
 
 (defn choice?
   "Returns `true` if `x` is an instance of `Choice`."
@@ -31,7 +38,7 @@
 (defn auto-get-choice
   [x]
   (if (choice? x)
-    (choice-map/value x)
+    (value x)
     x))
 
 (defn unwrap
@@ -53,6 +60,9 @@
 
                          :else
                          (Choice. x)))))
+
+;; TODO can we kill this? Why is this here?
+(def submaps choice-map)
 
 (defn choice-map? [m]
   (every? (fn [[_ v]]
