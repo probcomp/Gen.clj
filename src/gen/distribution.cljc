@@ -53,12 +53,10 @@
      :trace  (gf/simulate gf args)})
 
   (generate [gf args constraint]
-    (assert (cm/choice? constraint))
     (let [dist   (apply ctor args)
-          val    (cm/unwrap constraint)
-          weight (logpdf dist val)]
+          weight (logpdf dist constraint)]
       {:weight weight
-       :trace  (trace/->PrimitiveTrace gf args val weight)}))
+       :trace  (trace/->PrimitiveTrace gf args constraint weight)}))
 
   #?@(:clj
       [IFn

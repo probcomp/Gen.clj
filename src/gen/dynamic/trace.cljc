@@ -272,26 +272,8 @@
   `:trace`, `:weight` and `:change`."
   [t constraint]
   {:pre [(instance? PrimitiveTrace t)]}
-  (cond (cm/choice? constraint)
-        (-> (trace/gf t)
-            (gf/generate (trace/args t) constraint)
-            (update :weight - (trace/score t))
-            (core/assoc :change  diff/unknown-change
-                        :discard (trace/choices t)))
-
-        (nil? constraint)
-        {:trace t
-         :weight 0.0
-         :change diff/unknown-change}
-
-        (map? constraint)
-        (throw
-         (ex-info
-          "Expected a value at address but found a sub-assignment."
-          {:sub-assignment constraint}))
-
-        :else
-        (throw
-         (ex-info
-          "non-nil, non-Choice constraint not allowed."
-          {:sub-assignment constraint}))))
+  (-> (trace/gf t)
+      (gf/generate (trace/args t) constraint)
+      (update :weight - (trace/score t))
+      (core/assoc :change  diff/unknown-change
+                  :discard (trace/choices t))))
