@@ -5,8 +5,7 @@
   `intro-to-modeling`, and also changed the `pmap` call in `prepeatedly` into
   `map`, since we don't have `pmap` available in the browser."
   {:nextjournal.clerk/toc true}
-  (:require [gen.choice-map]
-            [gen.dynamic :as dynamic :refer [gen]]
+  (:require [gen.dynamic :as dynamic :refer [gen]]
             [gen.dynamic.choice-map :refer [choice-map]]
             [gen.clerk.callout :as callout]
             [gen.clerk.viewer :as viewer]

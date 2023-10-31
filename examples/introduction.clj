@@ -4,6 +4,8 @@
             [clojure.repl :as repl]
             [gen.distribution.commons-math :as dist]
             [gen.dynamic :as dynamic :refer [gen]]
+            [gen.choice-map :as choice-map]
+            [gen.dynamic.choice-map :as dynamic.choice-map]
             [gen.generative-function :as gf]
             [gen.trace :as trace]
             [nextjournal.clerk :as clerk]))
@@ -436,9 +438,11 @@
 ;; of random choices using the generate function. Suppose that we want a trace
 ;; where `:a` is always true and `:c` is always false. We first construct a
 ;; choice map containing these constraints:
-
-(require '[gen.dynamic.choice-map :as dynamic.choice-map]
-         '[gen.choice-map :as choice-map])
+;;
+;; ```clojure
+;; (require '[gen.choice-map :as choice-map]
+;;          '[gen.dynamic.choice-map :as dynamic.choice-map])
+;; ```
 
 (def constraints
   (dynamic.choice-map/choice-map
@@ -446,7 +450,7 @@
    :c false))
 
 #_
-(choice-map/submaps
+(choice-map/get-submaps-shallow
  (dynamic.choice-map/choice-map
   :a true
   :c false))
@@ -460,7 +464,7 @@
          :a true
          :c false))
 
-(choice-map/submaps choices)
+(choice-map/get-submaps-shallow choices)
 
 ;; Then, we pass the constraints as the third argument to
 ;; `gen.generative-function/generate`, after the function itself and the

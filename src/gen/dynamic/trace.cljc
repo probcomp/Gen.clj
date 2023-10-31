@@ -1,9 +1,9 @@
 (ns gen.dynamic.trace
   (:refer-clojure :exclude [=])
   (:require [clojure.core :as core]
-            [gen.choice-map :as choice-map]
             [gen.diff :as diff]
-            [gen.dynamic.choice-map :as cm]
+            [gen.choice-map :as cm]
+            [gen.dynamic.choice-map :as dynamic.choice-map]
             [gen.generative-function :as gf]
             [gen.trace :as trace])
   #?(:cljs
@@ -54,7 +54,8 @@
 
   trace/Choices
   (choices [_]
-    (cm/->ChoiceMap (update-vals subtraces trace/choices)))
+    (let [m (update-vals subtraces trace/choices)]
+      (dynamic.choice-map/->ChoiceMap m (into [] (keys m)))))
 
   trace/GenFn
   (gf [_]
@@ -207,7 +208,7 @@
   (let [gf (trace/gf this)
         state (atom {:trace (trace gf (trace/args this))
                      :weight 0
-                     :discard (cm/choice-map)})]
+                     :discard (dynamic.choice-map/choice-map)})]
     (binding [*splice*
               (fn [& _]
                 (throw (ex-info "Not yet implemented." {})))
@@ -215,7 +216,7 @@
               *trace*
               (fn [k gf args]
                 (validate-empty! (:trace @state) k)
-                (let [k-constraints (get (choice-map/submaps constraints) k)
+                (let [k-constraints (get (cm/get-submaps-shallow constraints) k)
                       {subtrace :trace :as ret}
                       (if-let [prev-subtrace (get (.-subtraces this) k)]
                         (trace/update prev-subtrace k-constraints)
@@ -254,7 +255,7 @@
   (retval [_] val)
 
   trace/Choices
-  (choices [_] (cm/choice val))
+  (choices [_] (dynamic.choice-map/choice val))
 
   trace/Score
   (score [_] score)
@@ -272,7 +273,7 @@
   `:trace`, `:weight` and `:change`."
   [t constraint]
   {:pre [(instance? PrimitiveTrace t)]}
-  (cond (cm/choice? constraint)
+  (cond (dynamic.choice-map/choice? constraint)
         (-> (trace/gf t)
             (gf/generate (trace/args t) constraint)
             (update :weight - (trace/score t))

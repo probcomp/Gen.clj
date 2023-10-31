@@ -62,7 +62,7 @@
                 (fn [k gf args]
                   (dynamic.trace/validate-empty! (:trace @state) k)
                   (let [{subtrace :trace :as ret}
-                        (if-let [k-constraints (get (choice-map/submaps constraints) k)]
+                        (if-let [k-constraints (get (choice-map/get-submaps-shallow constraints) k)]
                           (gf/generate gf args k-constraints)
                           (gf/generate gf args))]
                     (swap! state dynamic.trace/combine k ret)

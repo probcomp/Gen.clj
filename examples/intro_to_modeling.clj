@@ -1,8 +1,7 @@
 ^{:nextjournal.clerk/visibility {:code :hide :result :hide}}
 (ns intro-to-modeling
   {:nextjournal.clerk/toc true}
-  (:require [gen.choice-map]
-            [gen.dynamic :as dynamic :refer [gen]]
+  (:require [gen.dynamic :as dynamic :refer [gen]]
             [gen.dynamic.choice-map :refer [choice-map]]
             [gen.clerk.callout :as callout]
             [gen.clerk.viewer :as viewer]
