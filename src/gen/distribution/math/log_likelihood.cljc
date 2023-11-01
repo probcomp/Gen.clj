@@ -167,7 +167,6 @@
                (Math/log variance)
                (/ v-mu-sq variance)))))
 
-
 (defn uniform
   "Returns the log-likelihood of the continuous [uniform
   distribution](https://en.wikipedia.org/wiki/Continuous_uniform_distribution)
@@ -177,3 +176,26 @@
   (if (<= a v b)
     (- (Math/log (- b a)))
     ##-Inf))
+
+(defn student-t
+  "Returns the log-likelihood of the [non-standardized Student's
+  t-distribution](https://en.wikipedia.org/wiki/Student's_t-distribution#Location-scale_transformation)
+  parametrized by `location`, `scale` and degrees-of-freedom `nu` at the value
+  `v`.
+
+  This distribution is also known as the location-scale t-distribution.
+
+  The implementation follows the algorithm described on the
+  distribution's [Wikipedia
+  page](https://en.wikipedia.org/wiki/Student's_t-distribution#Location-scale_transformation)."
+  ([nu v] (student-t nu 0 1 v))
+  ([nu location scale v]
+   (let [inc-nu      (inc nu)
+         half-inc-nu (* 0.5 inc-nu)
+         normalized  (/ (- v location) scale)
+         norm**2     (* normalized normalized)]
+     (- (log-gamma-fn half-inc-nu)
+        (log-gamma-fn (* 0.5 nu))
+        (Math/log scale)
+        (* 0.5 (+ log-pi (Math/log nu)))
+        (* half-inc-nu (Math/log (inc (/ norm**2 nu))))))))

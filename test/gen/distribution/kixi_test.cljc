@@ -24,3 +24,6 @@
 
 (deftest gamma-tests
   (dt/gamma-tests kixi/gamma-distribution))
+
+(deftest student-t-tests
+  (dt/student-t-tests kixi/student-t-distribution))

@@ -4,15 +4,8 @@
             [gen.distribution.math.log-likelihood :as ll]
             [gen.distribution :as distribution]
             [gen.distribution-test :as dt]
-            [gen.test-check-util :refer [gen-double]]
+            [gen.test-check-util :refer [gen-double within]]
             [same.core :refer [ish? with-comparator]]))
-
-(defn within
-  "Returns a function that tests whether two values are within `eps` of each
-  other."
-  [^double eps]
-  (fn [^double x ^double y]
-    (< (Math/abs (- x y)) eps)))
 
 (defn factorial
   "Factorial implementation for testing."
@@ -79,3 +72,6 @@
 
 (deftest uniform-tests
   (dt/uniform-tests (->logpdf ll/uniform)))
+
+(deftest student-t-tests
+  (dt/student-t-tests (->logpdf ll/student-t)))

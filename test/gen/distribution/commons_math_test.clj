@@ -18,3 +18,6 @@
 
 (deftest gamma-tests
   (dt/gamma-tests commons/gamma-distribution))
+
+(deftest student-t-tests
+  (dt/student-t-tests commons/student-t-distribution))

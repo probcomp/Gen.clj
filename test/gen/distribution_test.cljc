@@ -7,13 +7,26 @@
             [gen.dynamic.choice-map :as choice-map]
             [gen.generative-function :as gf]
             [gen.trace :as trace]
-            [gen.test-check-util :refer [gen-double]]
-            [same.core :refer [ish? zeroish?]]))
+            [gen.test-check-util :refer [gen-double within]]
+            [same.core :refer [ish? zeroish? with-comparator]]))
 
 (defn gamma-tests [->gamma]
   (testing "spot checks"
     (is (= -6.391804444241573 (dist/logpdf (->gamma 0.001 1) 0.4)))
     (is (= -393.0922447210179 (dist/logpdf (->gamma 1 0.001) 0.4)))))
+
+(defn student-t-tests [->student-t]
+  (testing "spot checks"
+    (with-comparator (within 1e-12)
+      (is (ish? -1.7347417805005154 (dist/logpdf (->student-t 2 2.1 2) 2)))
+      (is (ish? -2.795309741614719 (dist/logpdf (->student-t 1 0.8 4) 3)))))
+
+  (checking "Student's T matches generalized logpdf"
+            [v  (gen-double -10 10)
+             nu (gen/fmap inc gen/nat)]
+            (is (= (dist/logpdf (->student-t nu 0 1) v)
+                   (dist/logpdf (->student-t nu) v))
+                "these two paths should produce the same results")))
 
 (defn beta-tests [->beta]
   (testing "spot checks"
@@ -161,9 +174,10 @@
                       (dist/logpdf (->normal 0.0 sigma) (- v)))
                 "Normal is symmetric about the mean")
 
-            (is (ish? (dist/logpdf (->normal mu sigma) v)
-                      (dist/logpdf (->normal (+ mu shift) sigma) (+ v shift)))
-                "shifting by the mean is a symmetry"))
+            (with-comparator (within 1e-12)
+              (is (ish? (dist/logpdf (->normal mu sigma) v)
+                        (dist/logpdf (->normal (+ mu shift) sigma) (+ v shift)))
+                  "shifting by the mean is a symmetry")))
 
   (testing "spot checks"
     (is (= -1.0439385332046727 (dist/logpdf (->normal 0 1) 0.5)))
