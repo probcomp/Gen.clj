@@ -5,7 +5,7 @@
   #?(:clj
      (:import (kixi.stats.distribution Bernoulli Cauchy
                                        Exponential Beta
-                                       Gamma Normal Uniform))))
+                                       Gamma Normal Uniform T))))
 
 ;; ## Kixi.stats protocol implementations
 ;;
@@ -80,6 +80,26 @@
                  (.-sd this)
                  v)))
 
+(extend-type #?(:clj T :cljs k/T)
+  d/Sample
+  (sample [this] (k/draw this))
+
+  d/LogPDF
+  (logpdf [this v]
+    (ll/student-t (.-dof this) 0 1 v)))
+
+;; Small wrapper around a kixi T-distribution to allow for location and scale
+;; parameters.
+
+(defrecord LocationScaleT [^T t-dist location scale]
+  d/Sample
+  (sample [_]
+    (+ location (* scale (k/draw t-dist))))
+
+  d/LogPDF
+  (logpdf [_ v]
+    (ll/student-t (.-dof t-dist) location scale v)))
+
 ;; ## Primitive probability distributions
 
 (defn bernoulli-distribution
@@ -110,6 +130,14 @@
 (defn gamma-distribution [shape scale]
   (k/gamma {:shape shape :scale scale}))
 
+(defn student-t-distribution
+  ([nu]
+   (k/t {:v nu}))
+  ([nu location scale]
+   (->LocationScaleT (student-t-distribution nu)
+                     location
+                     scale)))
+
 ;; ## Primitive generative functions
 
 (def bernoulli
@@ -132,3 +160,6 @@
 
 (def gamma
   (d/->GenerativeFn gamma-distribution))
+
+(def student-t
+  (d/->GenerativeFn student-t-distribution))

@@ -11,6 +11,7 @@
             EnumeratedIntegerDistribution
             GammaDistribution
             NormalDistribution
+            TDistribution
             UniformIntegerDistribution
             UniformRealDistribution)
            (org.apache.commons.math3.random
@@ -35,6 +36,19 @@
   d/Sample
   (sample [^AbstractIntegerDistribution obj]
     (.sample obj)))
+
+;; Small wrapper around a kixi T-distribution to allow for location and scale
+;; parameters.
+
+(defrecord LocationScaleT [^TDistribution t-dist location scale]
+  d/LogPDF
+  (logpdf [_ v]
+    (- (.logDensity t-dist (/ (- v location) scale))
+       (Math/log scale)))
+
+  d/Sample
+  (sample [_]
+    (+ location (* scale (.sample t-dist)))))
 
 ;; ## Primitive probability distributions
 
@@ -61,6 +75,13 @@
 
 (defn gamma-distribution [^double shape ^double scale]
   (GammaDistribution. (rng) shape scale))
+
+(defn student-t-distribution
+  ([^double nu]
+   (TDistribution. (rng) nu))
+  ([nu location scale]
+   (->LocationScaleT
+    (student-t-distribution nu) location scale)))
 
 (defn normal-distribution
   ([] (normal-distribution 0.0 1.0))
@@ -91,6 +112,9 @@
 
 (def gamma
   (d/->GenerativeFn gamma-distribution))
+
+(def student-t
+  (d/->GenerativeFn student-t-distribution))
 
 (def normal
   (d/->GenerativeFn normal-distribution))
