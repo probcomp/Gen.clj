@@ -1,9 +1,21 @@
 (ns gen.diff)
 
-(defrecord NoChange [])
+(defprotocol IDiff)
 
-(def no-change (->NoChange))
+(defrecord NoChange []
+  IDiff)
 
-(defrecord UnknownChange [])
+(defrecord UnknownChange []
+  IDiff)
 
-(def unknown-change (->UnknownChange))
+(def no-change (NoChange.))
+(def unknown-change (UnknownChange.))
+
+(defrecord SetDiff [added deleted]
+  IDiff)
+
+(defrecord DictDiff [added deleted updated]
+  IDiff)
+
+(defrecord VectorDiff [new-length prev-length updated]
+  IDiff)

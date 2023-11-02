@@ -1,48 +1,65 @@
-(ns gen.generative-function)
+(ns gen.generative-function
+  (:require [gen.trace :as trace]))
 
 ;; https://www.gen.dev/docs/stable/ref/gfi/#Generative-function-interface-1
 
-(defprotocol Simulate
-  :extend-via-metadata true
+(defprotocol IGenerativeFunction
+  (has-argument-grads [gf]
+    "Return a tuple of booleans indicating whether a gradient is available for
+    each of its arguments.")
+
+  (accepts-output-grad? [gf]
+    "Returns a boolean indicating whether the return value is dependent on any of
+    the gradient source elements for any trace.")
+
+  (get-params [gf]
+    "Returns an iterable over the trainable parameters of the generative
+    function.")
+
   (simulate [gf args]
     "Executes a generative function and return the trace."))
 
-(defprotocol Generate
-  :extend-via-metadata true
+(defprotocol IGenerate
   (generate
     [gf args]
     [gf args constraints]
     "Returns a trace of a generative function that is consistent with the given
     constraints on the random choices."))
 
-#_
-(defprotocol Propose
-  :extend-via-metadata true
+(defprotocol IPropose
   (propose [gf args]
     "Samples an assignment and compute the probability of proposing that
-    assignment."))
+    assignment. Returns a triple of the form
 
-#_
-(defprotocol Assess
+```
+(<choices> <weight> <retval>)
+```"))
+
+(defprotocol IAssess
   :extend-via-metadata true
   (assess [gf args choices]
-    "Returns the probability of proposing an assignment"))
+    "Returns a pair of:
 
-#_
-(defprotocol HasArgumentGrads
-  :extend-via-metadata true
-  (has-argument-grads [gf]))
+  - probability of proposing an assignment
+  - the return value"))
 
-#_
-(defprotocol AcceptsOutputGrad
-  :extend-via-metadata true
-  (accepts-output-grad? [gf]
-    "Returns a boolean indicating whether the return value is dependent on any of
-    the gradient source elements for any trace."))
+;; ## API
 
-#_
-(defprotocol Params
-  :extend-via-metadata true
-  (params [gf]
-    "Returns an iterable over the trainable parameters of the generative
-    function."))
+(defn ^:no-doc default-propose [gf args]
+  (let [trace  (simulate gf args)
+        weight (trace/get-score trace)]
+    [(trace/get-choices trace)
+     weight
+     (trace/get-retval trace)]))
+
+(extend-protocol IPropose
+  #?(:clj Object :cljs default)
+  (propose [gf args] (default-propose gf args)))
+
+(defn ^:no-doc default-assess [gf args choices]
+  (let [{:keys [trace weight]} (generate gf args choices)]
+    [weight (trace/get-retval trace)]))
+
+(extend-protocol IAssess
+  #?(:clj Object :cljs default)
+  (assess [gf args choices] (default-assess gf args choices)))

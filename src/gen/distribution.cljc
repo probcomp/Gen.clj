@@ -39,15 +39,21 @@
 ;;
 ;; This type provides support for all primitive distributions.
 
-(defrecord GenerativeFn [ctor]
-  gf/Simulate
+(defrecord GenerativeFn [ctor arity]
+  gf/IGenerativeFunction
+  (has-argument-grads [_] (repeat arity false))
+
+  (accepts-output-grad? [_] false)
+
+  (get-params [_] ())
+
   (simulate [this args]
     (let [dist  (apply ctor args)
           val   (sample dist)
           score (logpdf dist val)]
       (trace/->PrimitiveTrace this args val score)))
 
-  gf/Generate
+  gf/IGenerate
   (generate [gf args]
     {:weight 0.0
      :trace  (gf/simulate gf args)})

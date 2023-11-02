@@ -54,18 +54,18 @@
     (is (boolean? (bernoulli-dist 0.5))))
 
   (testing "bernoulli-gf"
-    (is (= bernoulli-dist (trace/gf (gf/simulate bernoulli-dist [])))))
+    (is (= bernoulli-dist (trace/get-gen-fn (gf/simulate bernoulli-dist [])))))
 
   (testing "bernoulli-args"
-    (is (= [0.5] (trace/args (gf/simulate bernoulli-dist [0.5])))))
+    (is (= [0.5] (trace/get-args (gf/simulate bernoulli-dist [0.5])))))
 
   (testing "bernoulli-retval"
-    (is (boolean? (trace/retval (gf/simulate bernoulli-dist [0.5])))))
+    (is (boolean? (trace/get-retval (gf/simulate bernoulli-dist [0.5])))))
 
   (testing "bernoulli-choices-noargs"
     (is (boolean?
          (choice-map/unwrap
-          (trace/choices (gf/simulate bernoulli-dist []))))))
+          (trace/get-choices (gf/simulate bernoulli-dist []))))))
 
   (testing "bernoulli-update-weight"
     (is (= 1.0

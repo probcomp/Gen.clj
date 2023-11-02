@@ -22,30 +22,38 @@
   `(binding [dynamic.trace/*trace* dynamic.trace/no-op]
      ~@body))
 
-(defrecord DynamicDSLFunction [clojure-fn]
-  gf/Simulate
+(defrecord DynamicDSLFunction [clojure-fn has-argument-grads accepts-output-grad?]
+  gf/IGenerativeFunction
+  (has-argument-grads [_] has-argument-grads)
+
+  (accepts-output-grad? [_] accepts-output-grad?)
+
+  (get-params [_] ())
+
   (simulate [gf args]
     (let [trace (atom (dynamic.trace/trace gf args))]
       (binding [dynamic.trace/*splice*
                 (fn [gf args]
                   (let [subtrace (gf/simulate gf args)]
                     (swap! trace dynamic.trace/merge-subtraces subtrace)
-                    (trace/retval subtrace)))
+                    (trace/get-retval subtrace)))
 
                 dynamic.trace/*trace*
                 (fn [k gf args]
                   (dynamic.trace/validate-empty! @trace k)
                   (let [subtrace (gf/simulate gf args)]
                     (swap! trace dynamic.trace/assoc-subtrace k subtrace)
-                    (trace/retval subtrace)))]
+                    (trace/get-retval subtrace)))]
         (let [retval (apply clojure-fn args)]
           (swap! trace dynamic.trace/with-retval retval)
           @trace))))
 
-  gf/Generate
+  gf/IGenerate
   (generate [gf args]
     (let [trace (gf/simulate gf args)]
-      {:trace trace :weight (Math/log 1)}))
+      {:trace trace
+       :weight 0.0}))
+
   (generate [gf args constraints]
     (let [state (atom {:trace (dynamic.trace/trace gf args)
                        :weight 0})]
@@ -56,7 +64,7 @@
                         (gf/generate gf args constraints)]
                     (swap! state update :trace dynamic.trace/merge-subtraces subtrace)
                     (swap! state update :weight + weight)
-                    (trace/retval subtrace)))
+                    (trace/get-retval subtrace)))
 
                 dynamic.trace/*trace*
                 (fn [k gf args]
@@ -66,7 +74,7 @@
                           (gf/generate gf args k-constraints)
                           (gf/generate gf args))]
                     (swap! state dynamic.trace/combine k ret)
-                    (trace/retval subtrace)))]
+                    (trace/get-retval subtrace)))]
         (let [retval (apply clojure-fn args)
               trace (:trace @state)]
           {:trace (dynamic.trace/with-retval trace retval)
@@ -189,22 +197,24 @@
 (defn ^:no-doc gen-body [& xs]
   (let [name (when (simple-symbol? (first xs))
                (first xs))
-        [params & body] (if name (rest xs) xs)]
-    `(->DynamicDSLFunction
-      (fn ~@(when name [name])
-        ~params
-        ~@(walk/postwalk
-           (fn [form]
-             (cond (trace-form? form)
-                   (let [[addr gf & xs] (rest form)]
-                     `((dynamic.trace/active-trace) ~addr ~gf [~@xs]))
+        [params & body] (if name (rest xs) xs)
+        has-arg-grads (mapv (constantly false) params)
+        accepts-output-grad? false]
+    `(-> (fn ~@(when name [name])
+           ~params
+           ~@(walk/postwalk
+              (fn [form]
+                (cond (trace-form? form)
+                      (let [[addr gf & xs] (rest form)]
+                        `((dynamic.trace/active-trace) ~addr ~gf [~@xs]))
 
-                   (splice-form? form)
-                   (let [[gf & xs] (rest form)]
-                     `((dynamic.trace/active-splice) ~gf [~@xs]))
+                      (splice-form? form)
+                      (let [[gf & xs] (rest form)]
+                        `((dynamic.trace/active-splice) ~gf [~@xs]))
 
-                   :else form))
-           body)))))
+                      :else form))
+              body))
+         (->DynamicDSLFunction ~has-arg-grads ~accepts-output-grad?))))
 
 (defmacro gen
   "Defines a generative function."

@@ -17,11 +17,9 @@
       (is (= f (dynamic.trace/active-splice))
           "active-splice reflects dynamic bindings"))))
 
-(defn choice-trace
-  [x]
-  (reify trace/Choices
-    (choices [_]
-      (dynamic.choice-map/choice x))))
+(defn choice-trace [x]
+  (reify trace/ITrace
+    (get-choices [_] (dynamic.choice-map/choice x))))
 
 (deftest empty?
   (let [trace (dynamic.trace/trace (gen []) [])]
@@ -29,12 +27,12 @@
 
 (deftest gf
   (let [gf (gen [])]
-    (is (= gf (trace/gf (dynamic.trace/trace gf []))))))
+    (is (= gf (trace/get-gen-fn (dynamic.trace/trace gf []))))))
 
 (deftest args
-  (is (= [] (trace/args (dynamic.trace/trace (gen []) []))))
-  (is (= [0] (trace/args (dynamic.trace/trace (gen [x] x) [0]))))
-  (is (= [0 1] (trace/args (dynamic.trace/trace (gen [x y] (+ x y)) [0 1])))))
+  (is (= [] (trace/get-args (dynamic.trace/trace (gen []) []))))
+  (is (= [0] (trace/get-args (dynamic.trace/trace (gen [x] x) [0]))))
+  (is (= [0 1] (trace/get-args (dynamic.trace/trace (gen [x y] (+ x y)) [0 1])))))
 
 (deftest call-position
   (let [trace (dynamic.trace/trace (gen []) [])]

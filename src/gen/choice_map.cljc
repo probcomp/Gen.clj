@@ -16,3 +16,17 @@
     (if (= n (count xs))
       ret
       (throw (ex-info "Dimension mismatch: " {:xs xs :n n})))))
+
+(defrecord EmptyChoiceMap []
+  IChoiceMap
+  (has-value? [_ _] false)
+  (get-value [_ _] nil)
+  (get-submap [this _] this)
+  (get-values-shallow [_] {})
+  (get-submaps-shallow [_] {})
+  (to-array [_] [])
+  (-from-array [this _ _] [0 this]))
+
+(def EMPTY
+  "Empty choicemap singleton."
+  (->EmptyChoiceMap))

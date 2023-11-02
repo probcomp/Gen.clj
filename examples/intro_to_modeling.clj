@@ -297,36 +297,36 @@
 ;; A trace of a generative function contains various information about an
 ;; execution of the function. For example, it contains the arguments on which
 ;; the function was run, which are available with the API method
-;; `gen.trace/args`:
+;; `gen.trace/get-args`:
 ;;
 ;; ```clojure
 ;; (require '[gen.trace :as trace])
 ;; ```
 
 
-(trace/args trace)
+(trace/get-args trace)
 
 ;; The trace also contains the value of the random choices, stored in a map from
 ;; address to value called a *choice map*. This map is available through the API
-;; method `gen.trace/choices`:
+;; method `gen.trace/get-choices`:
 
-(trace/choices trace)
+(trace/get-choices trace)
 
 ;; We can pull out individual values from this map using `clojure.core/get`:
 
-(get (trace/choices trace) :slope)
+(get (trace/get-choices trace) :slope)
 
 ;; Or we can use either the choice map as a function:
 
-(let [choices (trace/choices trace)]
+(let [choices (trace/get-choices trace)]
   (choices :slope))
 
 ;; Or we can call the keyword on the choice map:
 
-(:slope (trace/choices trace))
+(:slope (trace/get-choices trace))
 
 ;; We can also read the value of a random choice directly from the trace,
-;; without having to use `gen.trace/choices` first:
+;; without having to use `gen.trace/get-choices` first:
 
 (get trace :slope)
 
@@ -335,9 +335,9 @@
 (:slope trace)
 
 ;; The return value is also recorded in the trace, and is accessible with the
-;; `trace/retval` API method:
+;; `trace/get-retval` API method:
 
-(trace/retval trace)
+(trace/get-retval trace)
 
 ;; In order to understand the probabilistic behavior of a generative function,
 ;; it is helpful to be able to visualize its traces. Below, we define a Clerk
@@ -349,8 +349,8 @@
 
 (defn render-trace-spec
   [trace & {:keys [clip x-domain y-domain] :or {clip false}}]
-  (let [[xs] (trace/args trace) ; Pull out the xs from the trace.
-        y (trace/retval trace) ; Pull out the return value, useful for plotting.
+  (let [[xs] (trace/get-args trace) ; Pull out the xs from the trace.
+        y (trace/get-retval trace) ; Pull out the return value, useful for plotting.
         ys (for [i (range (count xs))]
              (trace [:y i]))
         data (mapv (fn [x y]
@@ -438,7 +438,7 @@
 (require '[clojure.math :as math])
 math/PI
 
-;; When calling `(trace/choices (gf/simulate sine-model [xs]))`, the following
+;; When calling `(trace/get-choices (gf/simulate sine-model [xs]))`, the following
 ;; choices should appear:
 
 ;; - amplitude: `(trace :amplitude)`
@@ -467,10 +467,10 @@ math/PI
 
 (defn render-sine-model-trace
   [trace]
-  (let [[xs] (trace/args trace) ; Pull out the xs from the trace.
+  (let [[xs] (trace/get-args trace) ; Pull out the xs from the trace.
         min-x (apply min xs)
         max-x (apply max xs)
-        y (trace/retval trace) ; Pull out the return value, useful for plotting.
+        y (trace/get-retval trace) ; Pull out the return value, useful for plotting.
         ys (for [i (range (count xs))]
              (get trace [:y i]))
         data (mapv (fn [x y]
@@ -941,12 +941,12 @@ math/PI
 
 ;; We first show the addresses sampled by `bar`:
 
-(trace/choices (gf/simulate bar []))
+(trace/get-choices (gf/simulate bar []))
 
 ;; And the addresses sampled by `bar-with-key`:
 
 (def bar-with-key-trace (gf/simulate bar-with-key []))
-(trace/choices bar-with-key-trace)
+(trace/get-choices bar-with-key-trace)
 
 ;; Using `dynamic/trace!` instead of `dynamic/splice!` can help avoid address
 ;; collisions for complex models.
@@ -1156,7 +1156,7 @@ math/PI
 
 (defn render-segments-trace
   [trace]
-  (let [node (trace/retval trace)]
+  (let [node (trace/get-retval trace)]
     (render-node node)))
 
 ;; We generate 12 traces from this function and visualize them below. We plot
@@ -1208,10 +1208,10 @@ math/PI
 
 (defn render-changepoint-model-trace
   [trace]
-  (let [[xs] (trace/args trace)
+  (let [[xs] (trace/get-args trace)
         ys (for [i (range (count xs))]
              (trace [:y i]))
-        node (trace/retval trace)
+        node (trace/get-retval trace)
         node-layer (node-vl-spec node)
         data-layer (scatter-spec xs ys :color "grey" :fillOpacity 0.3 :strokeOpacity 1.0)]
     (clerk/vl {:schema "https://vega.github.io/schema/vega-lite/v5.json"

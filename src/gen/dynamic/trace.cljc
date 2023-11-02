@@ -48,30 +48,22 @@
 (declare assoc-subtrace update-trace trace =)
 
 (deftype Trace [gf args subtraces retval]
-  trace/Args
-  (args [_]
-    args)
+  trace/ITrace
 
-  trace/Choices
-  (choices [_]
-    (let [m (update-vals subtraces trace/choices)]
+  (get-args [_] args)
+  (get-retval [_] retval)
+  (get-choices [_]
+    (let [m (update-vals subtraces trace/get-choices)]
       (dynamic.choice-map/->ChoiceMap m (into [] (keys m)))))
 
-  trace/GenFn
-  (gf [_]
-    gf)
-
-  trace/RetVal
-  (retval [_] retval)
-
-  trace/Score
-  (score [_]
+  (get-gen-fn [_] gf)
+  (get-score [_]
     ;; TODO Handle untraced randomness.
     (let [v (vals subtraces)]
-      (transduce (map trace/score) + 0.0 v)))
+      (transduce (map trace/get-score) + 0.0 v)))
 
-  trace/Update
-  (update [this constraints]
+  trace/IUpdate
+  (-update [this _ _ constraints]
     (update-trace this constraints))
 
   #?@(:cljs
@@ -93,7 +85,7 @@
        ;; (-clone [_] (Trace. (-clone m)))
 
        IIterable
-       (-iterator [this] (-iterator (trace/choices this)))
+       (-iterator [this] (-iterator (trace/get-choices this)))
 
        ;; ICollection
        ;; (-conj [_ entry])
@@ -108,16 +100,16 @@
        ;; (-hash [_] (-hash m))
 
        ISeqable
-       (-seq [this] (-seq (trace/choices this)))
+       (-seq [this] (-seq (trace/get-choices this)))
 
        ICounted
        (-count [_] (-count subtraces))
 
        ILookup
        (-lookup [this k]
-                (-lookup (trace/choices this) k))
+                (-lookup (trace/get-choices this) k))
        (-lookup [this k not-found]
-                (-lookup (trace/choices this) k not-found))
+                (-lookup (trace/get-choices this) k not-found))
 
        IAssociative
        ;; (-assoc [_ k v] (Trace. (-assoc m k (choice v))))
@@ -125,7 +117,7 @@
 
        IFind
        (-find [this k]
-              (-find (trace/choices this) k))]
+              (-find (trace/get-choices this) k))]
 
       :clj
       [Object
@@ -143,23 +135,23 @@
        (containsKey [_ k] (contains? subtraces k))
        (entryAt [_ k] (.entryAt ^Associative subtraces k))
        (count [_] (count subtraces))
-       (seq [this] (seq (trace/choices this)))
+       (seq [this] (seq (trace/get-choices this)))
        (valAt [this k]
-              (get (trace/choices this) k))
+              (get (trace/get-choices this) k))
        (valAt [this k not-found]
-              (get (trace/choices this) k not-found))
+              (get (trace/get-choices this) k not-found))
        (equiv [this that] (= this that))
        ;; TODO missing `cons`, `empty`?
 
        IMapIterable
        (keyIterator [this]
-                    (.iterator ^Iterable (keys (trace/choices this))))
+                    (.iterator ^Iterable (keys (trace/get-choices this))))
        (valIterator [this]
-                    (.iterator ^Iterable (vals (trace/choices this))))
+                    (.iterator ^Iterable (vals (trace/get-choices this))))
 
        Iterable
        (iterator [this]
-                 (.iterator ^Iterable (trace/choices this)))]))
+                 (.iterator ^Iterable (trace/get-choices this)))]))
 
 (defn ^:no-doc = [^Trace this that]
   (and (instance? Trace that)
@@ -205,8 +197,8 @@
       (cond-> discard (update :discard assoc k discard))))
 
 (defn update-trace [^Trace this constraints]
-  (let [gf (trace/gf this)
-        state (atom {:trace (trace gf (trace/args this))
+  (let [gf (trace/get-gen-fn this)
+        state (atom {:trace (trace gf (trace/get-args this))
                      :weight 0
                      :discard (dynamic.choice-map/choice-map)})]
     (binding [*splice*
@@ -222,12 +214,12 @@
                         (trace/update prev-subtrace k-constraints)
                         (gf/generate gf args k-constraints))]
                   (swap! state combine k ret)
-                  (trace/retval subtrace)))]
-      (let [retval (apply (:clojure-fn gf) (trace/args this))
+                  (trace/get-retval subtrace)))]
+      (let [retval (apply (:clojure-fn gf) (trace/get-args this))
             {:keys [trace weight discard]} @state
             unvisited (apply dissoc
-                             (trace/choices this)
-                             (keys (trace/choices trace)))]
+                             (trace/get-choices this)
+                             (keys (trace/get-choices trace)))]
 
         {:trace (with-retval trace retval)
          :weight weight
@@ -245,27 +237,16 @@
 (declare update-primitive)
 
 (defrecord PrimitiveTrace [gf args val score]
-  trace/GenFn
-  (gf [_] gf)
+  trace/ITrace
+  (get-args [_] args)
+  (get-retval [_] val)
+  (get-choices [_] (dynamic.choice-map/choice val))
+  (get-gen-fn [_] gf)
+  (get-score [_] score)
 
-  trace/Args
-  (args [_] args)
-
-  trace/RetVal
-  (retval [_] val)
-
-  trace/Choices
-  (choices [_] (dynamic.choice-map/choice val))
-
-  trace/Score
-  (score [_] score)
-
-  trace/Update
-  (update [trace constraint]
-    (update-primitive trace constraint))
-  (update [_ _ _ _]
-    (throw
-     (ex-info "Not yet implemented for primitive distributions." {}))))
+  trace/IUpdate
+  (-update [trace _ _ constraint]
+    (update-primitive trace constraint)))
 
 (defn ^:no-doc update-primitive
   "Accepts a [[PrimitiveTrace]] instance `t` and a
@@ -274,11 +255,11 @@
   [t constraint]
   {:pre [(instance? PrimitiveTrace t)]}
   (cond (dynamic.choice-map/choice? constraint)
-        (-> (trace/gf t)
-            (gf/generate (trace/args t) constraint)
-            (update :weight - (trace/score t))
+        (-> (trace/get-gen-fn t)
+            (gf/generate (trace/get-args t) constraint)
+            (update :weight - (trace/get-score t))
             (core/assoc :change  diff/unknown-change
-                        :discard (trace/choices t)))
+                        :discard (trace/get-choices t)))
 
         (nil? constraint)
         {:trace t
