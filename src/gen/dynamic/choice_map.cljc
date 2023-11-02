@@ -35,7 +35,7 @@
      (reduce-kv
       (fn [acc k v]
         (if (instance? Choice v)
-          (assoc! acc k v)
+          (assoc! acc k (:choice v))
           acc))
       (transient {})
       m)))
@@ -254,7 +254,6 @@
   [form]
   `(choice-map ~form))
 
-
 ;; ## API
 
 (defn choice?
@@ -282,17 +281,14 @@
         (map? m)    (update-vals m unwrap)
         :else m))
 
-(defn choice-map
-  [& {:as m}]
-  (->ChoiceMap
-   (update-vals m (fn [x]
-                    (cond (or (choice? x)
-                              (choice-map? x))
-                          x
+(defn choice-map [m]
+  (let [m' (update-vals m (fn [x]
+                            (cond (or (choice? x)
+                                      (choice-map? x))
+                                  x
 
-                          (map? x)
-                          (choice-map x)
+                                  (map? x) (choice-map x)
 
-                          :else
-                          (->Choice x))))
-   (into [] (keys m))))
+                                  :else
+                                  (->Choice x))))]
+    (->ChoiceMap m' (into [] (keys m)))))

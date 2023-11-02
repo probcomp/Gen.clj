@@ -64,16 +64,16 @@ back this out."))
 ;; ## API
 
 (defn trace? [t]
-  (instance? ITrace t))
+  (satisfies? ITrace t))
 
 (defn can-project? [t]
   (instance? IProject t))
 
 (defn can-update? [t]
-  (instance? IUpdate t))
+  (satisfies? IUpdate t))
 
 (defn can-regenerate? [t]
-  (instance? IRegenerate t))
+  (satisfies? IRegenerate t))
 
 (defn update
   "Updates a trace by changing the arguments and / or providing new values for
