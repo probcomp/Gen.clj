@@ -211,3 +211,28 @@
   [& args]
   {:clj-kondo/lint-as 'clojure.core/fn}
   (apply gen-body args))
+
+(defmacro let-traced
+  "Similar to `clojure.core/let`, but wraps all values in [[trace!]] calls
+  addressed via the binding symbol.
+
+  Example usage:
+
+  ```clojure
+  (def func
+    (gen []
+      (let-traced [a (gen.distribution/delta \"face\")
+                   b (gen.distribution/delta \"cake\")]
+        (str a \",\" b))))
+
+  (into {} (gf/simulate func []))
+  ;; => {:a \"face\" :b \"cake\"}
+  ```"
+  [bindings & body]
+  (let [bents (partition 2 bindings)]
+    (assert (every? symbol? (map first bents)))
+    `(let ~(into []
+                 (mapcat (fn [[sym expr]]
+                           [sym `(trace! (quote ~sym) ~@expr)]))
+                 bents)
+       ~@body)))
