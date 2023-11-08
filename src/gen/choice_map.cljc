@@ -1,13 +1,11 @@
 (ns gen.choice-map
   "Protocol defining the choice map interface."
-  (:refer-clojure :exclude [to-array])
-  #?(:clj
-     (:import (clojure.lang Associative IFn IObj IPersistentMap
-                            IMapIterable MapEntry))))
+  (:refer-clojure :exclude [to-array]))
 
 (defprotocol IChoiceMap
   (has-value? [m k])
   (get-value [m k] "NOTE that this returns a value, not a submap.")
+  (has-submap? [m k])
   (get-submap [m k] "NOTE that this returns a submap, not a value.")
   (get-values-shallow [m] "Return just values")
   (get-submaps-shallow [m] "Returns just submaps"))
@@ -31,6 +29,7 @@
   IChoiceMap
   (has-value? [_ _] false)
   (get-value [_ _] nil)
+  (has-submap? [_ _] false)
   (get-submap [this _] this)
   (get-values-shallow [_] {})
   (get-submaps-shallow [_] {})
@@ -55,6 +54,10 @@
     (let [x (nth v i nil)]
       (when-not (choice-map? x)
         x)))
+
+  (has-submap? [_ i]
+    (and (contains? v i)
+         (choice-map? (nth v i nil))))
 
   (get-submap [_ i]
     (let [x (nth v i nil)]
@@ -110,10 +113,11 @@
 
 (declare ->map)
 
-(deftype MapChoiceMap [leaves nodes]
+(deftype DynamicChoiceMap [leaves nodes]
   IChoiceMap
   (has-value? [_ i] (contains? leaves i))
   (get-value [_ i] (get leaves i nil))
+  (has-submap? [_ i] (contains? nodes i))
   (get-submap [_ i] (get nodes i nil))
   (get-values-shallow [_] leaves)
   (get-submaps-shallow [_] nodes)
@@ -150,26 +154,73 @@
                      (assoc! l-acc k (nth xs offset nil))
                      n-acc)))
           [(- offset start-idx)
-           (MapChoiceMap.
+           (DynamicChoiceMap.
             (persistent! l-acc)
             (persistent! n-acc))])))))
+
+(extend-protocol IArray
+  #?(:clj Object :cljs default)
+  (to-array [x] [x])
+  (-from-array [_ xs idx]
+    [1 (nth xs idx)])
+
+
+  ;; TODO fix by making this call recursively.
+  ;; #?(:clj IPersistentVector :cljs PersistentVector)
+  ;; (to-array [v] v)
+  ;; (-from-array [v xs start-idx]
+  ;;   (let [n (count v)]
+  ;;     [n (subvec xs start-idx (+ start-idx n))]))
+  )
 
 ;; ## API
 
 (defn vector-> [v]
   (->VectorChoiceMap v))
 
-(defn map-> [m]
-  (let [f (fn [[l n] k v]
-            (if (choice-map? v)
-              [l (assoc! n k v)]
-              [(assoc! l k v) n]))
-        [l n] (reduce-kv f
-                         [(transient {})
-                          (transient {})]
-                         m)]
-    (->MapChoiceMap (persistent! l)
-                    (persistent! n))))
+(defn choicemap
+  ([] (->DynamicChoiceMap {} {}))
+  ([m]
+   (let [f (fn [[l n] k v]
+             (if (choice-map? v)
+               [l (assoc! n k v)]
+               [(assoc! l k v) n]))
+         [l n] (reduce-kv f
+                          [(transient {})
+                           (transient {})]
+                          m)]
+     (->DynamicChoiceMap
+      (persistent! l)
+      (persistent! n)))))
+
+(defn ^:no-doc assoc-leaf
+  [^DynamicChoiceMap m k v]
+  (->DynamicChoiceMap (assoc (.-leaves m) k v)
+                      (dissoc (.-nodes m) k)))
+
+(defn ^:no-doc assoc-node
+  "TODO implement empty? and don't assoc an empty node."
+  [^DynamicChoiceMap m k v]
+  (->DynamicChoiceMap (dissoc (.-leaves m) k)
+                      (assoc (.-nodes m) k v)))
+
+(defn cm:assoc [m k v]
+  (let [assoc-f (if (choice-map? v)
+                  assoc-node
+                  assoc-leaf)]
+    (assoc-f m k v)))
+
+(defn cm:assoc-in
+  "TODO note that this will be careful re:assignment."
+  [^DynamicChoiceMap m [k & ks] v]
+  (if ks
+    (if (has-value? m k)
+      (throw (ex-info "Already a value at `k`, tried to assign nested" {}))
+      (let [sub-m (if (has-submap? m k)
+                    (get-submap m k)
+                    (choicemap))]
+        (cm:assoc m k (cm:assoc-in sub-m ks v))))
+    (cm:assoc m k v)))
 
 (defn ->map
   "Returns a map with all entries in the choicemap.
@@ -182,3 +233,54 @@
           submaps (get-submaps-shallow cm)]
       (into vals (update-vals submaps ->map)))
     cm))
+
+(defn merge
+  "TODO simplify...
+
+  TODO implement conj better so that we detect submap vs value?"
+  ([] EMPTY)
+  ([m] m)
+  ([l r]
+   (cond (not l) r
+         (not r) l
+         :else
+         (let [acc (->DynamicChoiceMap (get-values-shallow l) {})
+               acc (reduce-kv (fn [acc k l-node]
+                                (let [r-node (get-submap r k)]
+                                  (assoc-node acc k (merge l-node r-node))))
+                              acc
+                              (get-submaps-shallow l))
+               acc (reduce-kv (fn [acc k r-leaf]
+                                (cond (has-value? acc k)
+                                      (throw (ex-info "clash at k"
+                                                      {:k k
+                                                       :l (get-value acc k)
+                                                       :r r-leaf}))
+
+                                      (has-submap? acc k)
+                                      (throw (ex-info "clash at k"
+                                                      {:k k
+                                                       :l (get-submap acc k)
+                                                       :r r-leaf}))
+                                      :else (assoc-leaf acc k r-leaf)))
+                              acc
+                              (get-values-shallow r))]
+           ;; at this point we have all values, all left-submaps, and we
+           ;; want to collect the remaining right submaps. and make sure
+           ;; there is no key clash.
+           ;;
+           ;; we should diff the keysets, but just copying for now.
+           (reduce-kv (fn [acc k r-node]
+                        (cond (has-value? acc k)
+                              (throw (ex-info "clash at k"
+                                              {:k k
+                                               :acc (get-value acc k)
+                                               :r r-node}))
+                              (has-submap? acc k)
+                              acc
+
+                              :else (assoc-node acc k r-node)))
+                      acc
+                      (get-submaps-shallow r)))))
+  ([l r & more]
+   (reduce merge (merge l r) more)))

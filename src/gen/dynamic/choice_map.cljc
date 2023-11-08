@@ -1,41 +1,53 @@
 (ns gen.dynamic.choice-map
-  (:require [gen.choice-map :as cm])
+  (:require [gen.choice-map :as cm]
+            [gen.trace :as trace])
   #?(:clj
      (:import (clojure.lang Associative IFn IObj IPersistentMap
                             IMapIterable MapEntry))))
 
 ;; https://www.gen.dev/docs/stable/ref/choice_maps/#Choice-Maps-1
 
-;; Take implementation from Trie here...
-;; https://github.com/flatland/ordered/blob/develop/src/flatland/ordered/map.clj
+(declare unwrap choice)
 
-(declare unwrap unwrap choice)
+(defrecord Choice [retval score]
+  cm/IArray
+  (to-array [_] [retval])
+  (-from-array [_ xs idx]
+    [1 (Choice. (nth xs idx) score)]))
 
-;; TODO rename to `Value`... OR todo simply remove??
-(defrecord Choice [choice])
+(defrecord Call [subtrace score noise])
 
-(deftype ChoiceMap [m ks]
+(deftype ChoiceMap [m]
   cm/IChoiceMap
   (has-value? [m k]
     (instance? Choice (get m k)))
 
-  ;; TODO note that get-value DOES do unwrapping. So when do we ever need wrapping?
   (get-value [m k]
     (when-let [v (get m k)]
       (when (instance? Choice v)
-        (:choice v))))
+        (:retval v))))
 
+  (has-submap? [m k]
+    (instance? Call (get m k)))
+
+  ;; TODO these error on the wrong fetch in the original. is that right?? and
+  ;; empty returns EmptyChoiceMap, never nil.
   (get-submap [m k]
     (when-let [v (get m k)]
-      (when (instance? ChoiceMap v)
-        v)))
+      (cond (instance? Call v)
+            (trace/get-choices (:subtrace v))
+
+            (map? v)
+            (ChoiceMap. v)
+
+            :else nil)))
 
   (get-values-shallow [_]
     (persistent!
      (reduce-kv
       (fn [acc k v]
         (if (instance? Choice v)
-          (assoc! acc k (:choice v))
+          (assoc! acc k (:retval v))
           acc))
       (transient {})
       m)))
@@ -44,37 +56,51 @@
     (persistent!
      (reduce-kv
       (fn [acc k v]
-        (if (instance? ChoiceMap v)
-          (assoc! acc k v)
-          acc))
+        (cond (instance? Call v)
+              (assoc! acc k (trace/get-choices (:subtrace v)))
+
+              (map? v)
+              (assoc! acc k (ChoiceMap. v))
+
+              :else acc))
       (transient {})
       m)))
 
+  cm/IArray
+  ;; TODO simplify by implementing for maps and vectors.
   (to-array [_]
-    (into []
-          (mapcat (fn [k]
-                    (let [v (get m k)]
-                      (if (instance? ChoiceMap v)
-                        (cm/to-array v)
-                        [v]))))
-          ks))
+    (let [pairs (sort-by key m)
+          xform (mapcat (fn [[_ v]]
+                          (cond (instance? Choice v)
+                                [(:retval v)]
 
+                                (instance? Call v)
+                                (cm/to-array
+                                 (trace/get-choices (:subtrace v)))
+
+                                :else (cm/to-array
+                                       (ChoiceMap. v)))))]
+      (into [] xform pairs)))
+
+  ;; TODO probably buggy.
   (-from-array [_ xs start-idx]
-    (loop [i      0
-           offset start-idx
-           acc    {}]
-      (if-let [k (nth ks i nil)]
-        (let [v  (get m k)]
-          (if (instance? ChoiceMap v)
-            (let [[n ret] (cm/-from-array v xs i)]
+    (let [ks (sort (keys m))]
+      (loop [i      0
+             offset start-idx
+             acc    {}]
+        (if-let [k (nth ks i nil)]
+          (let [v  (get m k)]
+            (if (instance? ChoiceMap v)
+              (let [[n ret] (cm/-from-array v xs i)]
+                (recur (inc i)
+                       (+ n offset)
+                       (assoc acc k ret)))
               (recur (inc i)
-                     (+ n offset)
-                     (assoc acc k ret)))
-            (recur (inc i)
-                   (inc offset)
-                   (assoc acc k (nth xs offset nil)))))
-        [i acc])))
+                     (inc offset)
+                     (assoc acc k (nth xs offset nil)))))
+          [i acc]))))
 
+  ;; TODO delete most of this.
   #?@(:cljs
       [Object
        (toString [this] (pr-str this))
@@ -94,11 +120,11 @@
        (-meta [_] (-meta m))
 
        IWithMeta
-       (-with-meta [_ meta-m] (ChoiceMap. (-with-meta m meta-m) ks))
+       (-with-meta [_ meta-m] (ChoiceMap. (-with-meta m meta-m)))
 
 
        ICloneable
-       (-clone [_] (ChoiceMap. (-clone m) (-clone ks)))
+       (-clone [_] (ChoiceMap. (-clone m)))
 
        IIterable
        (-iterator [_] (-iterator m))
@@ -107,20 +133,15 @@
        (-conj [_ entry]
               (if (vector? entry)
                 (ChoiceMap.
-                 (-assoc m (-nth entry 0) (choice (-nth entry 1)))
-                 ;; TODO fix!
-                 ks)
+                 (-assoc m (-nth entry 0) (choice (-nth entry 1))))
                 (ChoiceMap.
                  (reduce-kv (fn [acc k v]
                               (assoc acc k (choice v)))
                             m
-                            entry)
-                 ;; TODO FIX!
-                 ks
-                 )))
+                            entry))))
 
        IEmptyableCollection
-       (-empty [_] (ChoiceMap. (-empty m) []))
+       (-empty [_] (ChoiceMap. (-empty m)))
 
        IEquiv
        (-equiv [_ o] (and (instance? ChoiceMap o) (= m (.-m ^ChoiceMap o))))
@@ -147,7 +168,7 @@
                     (unwrap v))))
 
        IAssociative
-       (-assoc [_ k v] (ChoiceMap. (-assoc m k (choice v)) ks))
+       (-assoc [_ k v] (ChoiceMap. (-assoc m k (choice v))))
        (-contains-key? [_ k] (-contains-key? m k))
 
        IFind
@@ -156,7 +177,7 @@
                 (MapEntry. (-key v) (unwrap (-val v)) nil)))
 
        IMap
-       (-dissoc [_ k] (ChoiceMap. (-dissoc m k) ks))
+       (-dissoc [_ k] (ChoiceMap. (-dissoc m k)))
 
        IKVReduce
        (-kv-reduce [_ f init]
@@ -176,17 +197,14 @@
 
        IObj
        (meta [_] (meta m))
-       (withMeta [_ meta-m] (ChoiceMap. (with-meta m meta-m) ks))
+       (withMeta [_ meta-m] (ChoiceMap. (with-meta m meta-m)))
 
        IPersistentMap
        (assocEx [_ _ _] (throw (Exception.)))
        (assoc   [_ k v]
-                (ChoiceMap. (.assoc ^IPersistentMap m k (choice v))
-                            (conj ks k)))
+                (ChoiceMap. (.assoc ^IPersistentMap m k (choice v))))
        (without [_ k]
-                (ChoiceMap. (.without ^IPersistentMap m k)
-                            ;; TODO error, implement!
-                            ks))
+                (ChoiceMap. (.without ^IPersistentMap m k)))
 
        Associative
        (containsKey [_ k] (contains? m k))
@@ -197,16 +215,14 @@
              (if (map? o)
                (reduce-kv assoc this o)
                (let [[k v] o]
-                 (ChoiceMap. (assoc m k (choice v))
-                             ;; TODO error, implement!
-                             ks))))
+                 (ChoiceMap. (assoc m k (choice v))))))
        (count [_] (count m))
        (seq [_]
             (when-let [kvs (seq m)]
               (map (fn [[k v]]
                      (MapEntry/create k (unwrap v)))
                    kvs)))
-       (empty [_] (ChoiceMap. (empty m) []))
+       (empty [_] (ChoiceMap. (empty m)))
        (valAt [_ k]
               (unwrap (get m k)))
        (valAt [_ k not-found]
@@ -226,6 +242,7 @@
                    (.iterator ^Iterable xs)
                    (.iterator {})))]))
 
+
 #?(:clj
    (defmethod print-method Choice [choice ^java.io.Writer w]
      (.write w "#gen/choice ")
@@ -237,6 +254,8 @@
      (print-method (unwrap cm) w)))
 
 ;; ## Reader literals
+
+;; TODO delete choice reader...
 
 (defn ^:no-doc parse-choice
   "Implementation of a reader literal that turns literal forms into calls
@@ -256,39 +275,39 @@
 
 ;; ## API
 
-(defn choice?
-  "Returns `true` if `x` is an instance of [[Choice]], false otherwise."
-  [x]
-  (instance? Choice x))
-
 (defn choice-map?
   "Returns `true` if `x` is an instance of [[ChoiceMap]], false otherwise."
   [x]
   (instance? ChoiceMap x))
 
+;; TODO delete!
 (defn choice
   "Creates a new leaf choice map with `x` as its value."
   [x]
   (if (instance? Choice x)
     x
-    (->Choice x)))
+    (->Choice x 0.0)))
+
+;; TODO delete in favor of ->map.
 
 (defn unwrap
   "If `m` is a [[Choice]] or [[ChoiceMap]], returns `m` stripped of its wrappers.
   Else, returns `m`"
   [m]
-  (cond (choice? m) (:choice m)
+  (cond (instance? Choice m) (:retval m)
         (map? m)    (update-vals m unwrap)
         :else m))
 
-(defn choice-map [m]
-  (let [m' (update-vals m (fn [x]
-                            (cond (or (choice? x)
-                                      (choice-map? x))
-                                  x
+(defn choice-map
+  ([] (choice-map {}))
+  ([m]
+   (let [m' (update-vals m (fn [x]
+                             (cond (or (choice? x)
+                                       (choice-map? x))
+                                   x
 
-                                  (map? x) (choice-map x)
+                                   (map? x) (choice-map x)
 
-                                  :else
-                                  (->Choice x))))]
-    (->ChoiceMap m' (into [] (keys m)))))
+                                   :else
+                                   (->Choice x))))]
+     (->ChoiceMap m'))))

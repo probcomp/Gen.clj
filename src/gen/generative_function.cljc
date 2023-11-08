@@ -1,5 +1,6 @@
 (ns gen.generative-function
-  (:require [gen.trace :as trace]))
+  (:require [gen.trace :as trace]
+            [gen.choice-map :as choice-map]))
 
 ;; https://www.gen.dev/docs/stable/ref/gfi/#Generative-function-interface-1
 
@@ -20,9 +21,7 @@
     "Executes a generative function and return the trace."))
 
 (defprotocol IGenerate
-  (generate
-    [gf args]
-    [gf args constraints]
+  (-generate [gf args constraints]
     "Returns a trace of a generative function that is consistent with the given
     constraints on the random choices."))
 
@@ -45,6 +44,35 @@
 
 ;; ## API
 
+(defn generate
+  "Returns a trace of a generative function `gf` that is consistent with the given
+  `constraints` on the random choices.
+
+  If `constraints` aren't supplied, the implementation defaults to
+
+  ```clojure
+  (let [trace (simulate gf args)]
+     {:trace trace
+      :weight 0.0})
+  ```"
+  ([gf args]
+   (let [trace (simulate gf args)]
+     {:trace trace
+      :weight 0.0}))
+  ([gf args constraints]
+   ;; TODO test constraints that are NOT a choice map and convert them on the
+   ;; way in!
+   ;;
+   ;; TODO also guard against empty constraints.
+   ;;
+   ;; TODO test that all get_submap return empty submap on missing constraints.
+   (let [constraints (if (choice-map/choice-map? constraints)
+                       constraints
+                       (choice-map/choicemap constraints))]
+     (if (empty? constraints)
+       (generate gf args)
+       (-generate gf args constraints)))))
+
 (defn ^:no-doc default-propose [gf args]
   (let [trace  (simulate gf args)
         weight (trace/get-score trace)]
@@ -57,7 +85,7 @@
   (propose [gf args] (default-propose gf args)))
 
 (defn ^:no-doc default-assess [gf args choices]
-  (let [{:keys [trace weight]} (generate gf args choices)]
+  (let [{:keys [trace weight]} (-generate gf args choices)]
     [weight (trace/get-retval trace)]))
 
 (extend-protocol IAssess

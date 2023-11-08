@@ -45,26 +45,75 @@
   []
   *splice*)
 
-(declare assoc-subtrace update-trace trace =)
+(declare trace =)
 
-(deftype Trace [gf args subtraces retval]
+;; wrapper type!
+
+(defrecord Choice [retval score]
+  cm/IArray
+  (to-array [_] [retval])
+  (-from-array [_ xs idx]
+    [1 (Choice. (nth xs idx) score)]))
+
+;; TODO I THINK I WILL ONLY NEED THIS and can get rid of the Choice abstraction.
+(defrecord Call [subtrace score noise])
+
+(deftype ChoiceMap [m]
+  cm/IChoiceMap
+  (has-value? [m k]
+    (instance? Choice (get m k)))
+
+  (get-value [m k]
+    (when-let [v (get m k)]
+      (when (instance? Choice v)
+        (:retval v))))
+
+  (has-submap? [m k]
+    (instance? Call (get m k)))
+
+  ;; TODO these error on the wrong fetch in the original. is that right?? and
+  ;; empty returns EmptyChoiceMap, never nil.
+  (get-submap [m k]
+    (when-let [v (get m k)]
+      (cond (instance? Call v)
+            (trace/get-choices (:subtrace v))
+
+            (map? v)
+            (ChoiceMap. v)
+
+            :else nil)))
+
+  (get-values-shallow [_]
+    (persistent!
+     (reduce-kv
+      (fn [acc k v]
+        (if (instance? Choice v)
+          (assoc! acc k (:retval v))
+          acc))
+      (transient {})
+      m)))
+
+  (get-submaps-shallow [_]
+    (persistent!
+     (reduce-kv
+      (fn [acc k v]
+        (cond (instance? Call v)
+              (assoc! acc k (trace/get-choices (:subtrace v)))
+
+              (map? v)
+              (assoc! acc k (ChoiceMap. v))
+
+              :else acc))
+      (transient {})
+      m))))
+
+(deftype Trace [gen-fn trie score noise args retval]
   trace/ITrace
-
   (get-args [_] args)
   (get-retval [_] retval)
-  (get-choices [_]
-    (let [m (update-vals subtraces trace/get-choices)]
-      (dynamic.choice-map/->ChoiceMap m (into [] (keys m)))))
-
-  (get-gen-fn [_] gf)
-  (get-score [_]
-    ;; TODO Handle untraced randomness.
-    (let [v (vals subtraces)]
-      (transduce (map trace/get-score) + 0.0 v)))
-
-  trace/IUpdate
-  (-update [this _ _ constraints]
-    (update-trace this constraints))
+  (get-gen-fn [_] gen-fn)
+  (get-choices [_] (->ChoiceMap trie))
+  (get-score [_] score)
 
   #?@(:cljs
       [Object
@@ -75,10 +124,10 @@
        (-invoke [this k not-found] (-lookup this k not-found))
 
        IMeta
-       (-meta [_] (meta subtraces))
+       (-meta [_] (meta trie))
 
        IWithMeta
-       (-with-meta [_ m] (Trace. gf args (with-meta subtraces m) retval))
+       (-with-meta [_ m] (Trace. gen-fn args (with-meta trie m) retval))
 
 
        ;; ICloneable
@@ -103,7 +152,7 @@
        (-seq [this] (-seq (trace/get-choices this)))
 
        ICounted
-       (-count [_] (-count subtraces))
+       (-count [_] (-count trie))
 
        ILookup
        (-lookup [this k]
@@ -113,7 +162,7 @@
 
        IAssociative
        ;; (-assoc [_ k v] (Trace. (-assoc m k (choice v))))
-       (-contains-key? [_ k] (-contains-key? subtraces k))
+       (-contains-key? [_ k] (-contains-key? trie k))
 
        IFind
        (-find [this k]
@@ -128,13 +177,13 @@
        (invoke [this k not-found] (.valAt this k not-found))
 
        IObj
-       (meta [_] (meta subtraces))
-       (withMeta [_ m] (Trace. gf args (with-meta subtraces m) retval))
+       (meta [_] (meta trie))
+       (withMeta [_ m] (Trace. gen-fn (with-meta trie m) score noise args retval))
 
        Associative
-       (containsKey [_ k] (contains? subtraces k))
-       (entryAt [_ k] (.entryAt ^Associative subtraces k))
-       (count [_] (count subtraces))
+       (containsKey [_ k] (contains? trie k))
+       (entryAt [_ k] (.entryAt ^Associative trie k))
+       (count [_] (count trie))
        (seq [this] (seq (trace/get-choices this)))
        (valAt [this k]
               (get (trace/get-choices this) k))
@@ -153,77 +202,98 @@
        (iterator [this]
                  (.iterator ^Iterable (trace/get-choices this)))]))
 
-(defn ^:no-doc = [^Trace this that]
-  (and (instance? Trace that)
-       (let [^Trace that that]
-         (and (core/= (.-gf this) (.-gf that))
-              (core/= (.-args this) (.-args that))
-              (core/= (.-subtraces this) (.-subtraces that))
-              (core/= (.-retval this) (.-retval that))))))
-
 (defn trace
-  [gf args]
-  (->Trace gf args {} nil))
+  "new trace.
 
-(defn with-retval [^Trace t v]
-  (->Trace (.-gf t) (.-args t) (.-subtraces t) v))
+  TODO pad args with defaults if available."
+  [gen-fn args]
+  (Trace. gen-fn {} 0.0 0.0 args nil))
 
-(defn validate-empty! [t addr]
-  (when (contains? t addr)
+(defn validate-empty! [m addr]
+  (when (contains? m addr)
     (throw (ex-info "Value or subtrace already present at address. The same
                       address cannot be reused for multiple random choices."
                     {:addr addr}))))
 
-(defn assoc-subtrace
-  [^Trace t addr subt]
-  (validate-empty! t addr)
-  (->Trace (.-gf t)
-             (.-args t)
-             (assoc (.-subtraces t) addr subt)
-             (.-retval t)))
+(defn with-retval [^Trace trace retval]
+  (Trace. (.-gen-fn trace)
+          (.-trie trace)
+          (.-score trace)
+          (.-noise trace)
+          (.-args trace)
+          retval))
 
-(defn merge-subtraces
-  [^Trace t1 ^Trace t2]
-  (reduce-kv assoc-subtrace
-             t1
-             (.-subtraces t2)))
+(defn add-call
+  "TODO handle noise."
+  [^Trace trace k subtrace]
+  (let [trie (.-trie trace)]
+    (validate-empty! trie k)
+    (let [score (trace/get-score subtrace)
+          noise 0.0 #_ (trace/project subtrace nil)
+          call  (->Call subtrace score noise)]
+      (Trace. (.-gen-fn trace)
+              (assoc trie k call)
+              (+ (.-score trace) score)
+              (+ (.-noise trace) noise)
+              (.-args trace)
+              (.-retval trace)))))
 
+(defn ^:no-doc = [^Trace this that]
+  (and (instance? Trace that)
+       (let [^Trace that that]
+         (and (core/= (.-gen-fn this) (.-gen-fn that))
+              (core/= (.-trie this) (.-trie that))
+              (core/= (.-score this) (.-score that))
+              (core/= (.-noise this) (.-noise that))
+              (core/= (.-args this) (.-args that))
+              (core/= (.-retval this) (.-retval that))))))
+
+
+;; ## Update State
 (defn ^:no-doc combine
   "combine by adding weights?"
   [v k {:keys [trace weight discard]}]
   (-> v
-      (update :trace assoc-subtrace k trace)
+      (update :trace add-call k trace)
       (update :weight + weight)
       (cond-> discard (update :discard assoc k discard))))
 
-(defn update-trace [^Trace this constraints]
-  (let [gf (trace/get-gen-fn this)
-        state (atom {:trace (trace gf (trace/get-args this))
-                     :weight 0
-                     :discard (dynamic.choice-map/choice-map)})]
-    (binding [*splice*
-              (fn [& _]
-                (throw (ex-info "Not yet implemented." {})))
+;; ## Update impl
+(extend-type Trace
+  trace/IUpdate
+  (-update [this _ _ constraints]
+    ;; TODO this feels weird that we need something like this...
+    ;;
+    ;; TODO can we add exec to the protocol?
+    (let [^gen.dynamic.DynamicDSLFunction gen-fn (trace/get-gen-fn this)
+          state (atom {:trace (trace gen-fn (trace/get-args this))
+                       :weight 0
+                       :discard (dynamic.choice-map/choice-map)})]
+      (binding [*splice*
+                (fn [_ _args]
+                  (throw (ex-info "Not yet implemented." {})))
 
-              *trace*
-              (fn [k gf args]
-                (validate-empty! (:trace @state) k)
-                (let [k-constraints (get (cm/get-submaps-shallow constraints) k)
-                      {subtrace :trace :as ret}
-                      (if-let [prev-subtrace (get (.-subtraces this) k)]
-                        (trace/update prev-subtrace k-constraints)
-                        (gf/generate gf args k-constraints))]
-                  (swap! state combine k ret)
-                  (trace/get-retval subtrace)))]
-      (let [retval (apply (:clojure-fn gf) (trace/get-args this))
-            {:keys [trace weight discard]} @state
-            unvisited (apply dissoc
-                             (trace/get-choices this)
-                             (keys (trace/get-choices trace)))]
+                *trace*
+                ;; TODO this needs a major redo to match the interface.
+                (fn [k gen-fn args]
+                  (validate-empty! (:trace @state) k)
+                  (let [k-constraints (cm/get-submap constraints k)
+                        {subtrace :trace :as ret}
+                        (if-let [prev-subtrace (get (.-trie this) k)]
+                          (trace/update prev-subtrace k-constraints)
+                          (gf/generate gen-fn args k-constraints))]
+                    (swap! state combine k ret)
+                    (trace/get-retval subtrace)))]
+        (let [retval (apply (.-clojure-fn gen-fn) (trace/get-args this))
+              {:keys [trace weight discard]} @state
+              unvisited (apply dissoc
+                               (trace/get-choices this)
+                               (keys (trace/get-choices trace)))]
 
-        {:trace (with-retval trace retval)
-         :weight weight
-         :discard (merge discard unvisited)}))))
+          {:trace (with-retval trace retval)
+           :change diff/unknown-change
+           :weight weight
+           :discard (merge discard unvisited)})))))
 
 ;; ## Primitive Trace
 ;;
@@ -234,46 +304,19 @@
 ;; [[PrimitiveTrace]] is a simplified version of [[Trace]] (and an implementer
 ;; of the [[gen.trace]] interface) designed for a single value.
 
-(declare update-primitive)
-
-(defrecord PrimitiveTrace [gf args val score]
+(defrecord PrimitiveTrace [gen-fn args val score]
   trace/ITrace
   (get-args [_] args)
   (get-retval [_] val)
-  (get-choices [_] (dynamic.choice-map/choice val))
-  (get-gen-fn [_] gf)
+  ;; TODO yes, this is the reason we need ValueChoiceMap, a single thing...
+  ;; fix!!
+  (get-choices [_] val)
+  (get-gen-fn [_] gen-fn)
   (get-score [_] score)
 
   trace/IUpdate
-  (-update [trace _ _ constraint]
-    (update-primitive trace constraint)))
-
-(defn ^:no-doc update-primitive
-  "Accepts a [[PrimitiveTrace]] instance `t` and a
-  single [[gen.dynamic.choice-map/Choice]] and returns a new object with keys
-  `:trace`, `:weight` and `:change`."
-  [t constraint]
-  {:pre [(instance? PrimitiveTrace t)]}
-  (cond (dynamic.choice-map/choice? constraint)
-        (-> (trace/get-gen-fn t)
-            (gf/generate (trace/get-args t) constraint)
-            (update :weight - (trace/get-score t))
-            (core/assoc :change  diff/unknown-change
-                        :discard (trace/get-choices t)))
-
-        (nil? constraint)
-        {:trace t
-         :weight 0.0
-         :change diff/unknown-change}
-
-        (map? constraint)
-        (throw
-         (ex-info
-          "Expected a value at address but found a sub-assignment."
-          {:sub-assignment constraint}))
-
-        :else
-        (throw
-         (ex-info
-          "non-nil, non-Choice constraint not allowed."
-          {:sub-assignment constraint}))))
+  (-update [_ _ _ constraint]
+    (-> (gf/generate gen-fn args constraint)
+        (update :weight - score)
+        (core/assoc :change  diff/unknown-change
+                    :discard val))))

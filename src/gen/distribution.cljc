@@ -54,11 +54,7 @@
       (trace/->PrimitiveTrace this args val score)))
 
   gf/IGenerate
-  (generate [gf args]
-    {:weight 0.0
-     :trace  (gf/simulate gf args)})
-
-  (generate [gf args constraint]
+  (-generate [gf args constraint]
     (assert (cm/choice? constraint))
     (let [dist   (apply ctor args)
           val    (cm/unwrap constraint)

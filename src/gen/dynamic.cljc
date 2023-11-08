@@ -7,6 +7,7 @@
   #?(:cljs
      (:require-macros [gen.dynamic :refer [untraced]])))
 
+;; TODO move these to `gen`.
 (defn trace! [& _]
   {:arglists '([addr f & xs])}
   (throw
@@ -25,60 +26,23 @@
 (defrecord DynamicDSLFunction [clojure-fn has-argument-grads accepts-output-grad?]
   gf/IGenerativeFunction
   (has-argument-grads [_] has-argument-grads)
-
   (accepts-output-grad? [_] accepts-output-grad?)
-
   (get-params [_] ())
-
   (simulate [gf args]
-    (let [trace (atom (dynamic.trace/trace gf args))]
+    (let [!trace (atom (dynamic.trace/trace gf args))]
       (binding [dynamic.trace/*splice*
-                (fn [gf args]
-                  (let [subtrace (gf/simulate gf args)]
-                    (swap! trace dynamic.trace/merge-subtraces subtrace)
-                    (trace/get-retval subtrace)))
+                (fn [^DynamicDSLFunction gf args]
+                  (apply (.-clojure-fn gf) args))
 
                 dynamic.trace/*trace*
                 (fn [k gf args]
-                  (dynamic.trace/validate-empty! @trace k)
+                  (dynamic.trace/validate-empty! @!trace k)
                   (let [subtrace (gf/simulate gf args)]
-                    (swap! trace dynamic.trace/assoc-subtrace k subtrace)
-                    (trace/get-retval subtrace)))]
-        (let [retval (apply clojure-fn args)]
-          (swap! trace dynamic.trace/with-retval retval)
-          @trace))))
-
-  gf/IGenerate
-  (generate [gf args]
-    (let [trace (gf/simulate gf args)]
-      {:trace trace
-       :weight 0.0}))
-
-  (generate [gf args constraints]
-    (let [state (atom {:trace (dynamic.trace/trace gf args)
-                       :weight 0})]
-      (binding [dynamic.trace/*splice*
-                (fn [gf args]
-                  (let [{subtrace :trace
-                         weight :weight}
-                        (gf/generate gf args constraints)]
-                    (swap! state update :trace dynamic.trace/merge-subtraces subtrace)
-                    (swap! state update :weight + weight)
-                    (trace/get-retval subtrace)))
-
-                dynamic.trace/*trace*
-                (fn [k gf args]
-                  (dynamic.trace/validate-empty! (:trace @state) k)
-                  (let [{subtrace :trace :as ret}
-                        (if-let [k-constraints (get (choice-map/get-submaps-shallow constraints) k)]
-                          (gf/generate gf args k-constraints)
-                          (gf/generate gf args))]
-                    (swap! state dynamic.trace/combine k ret)
+                    (swap! !trace dynamic.trace/add-call k subtrace)
                     (trace/get-retval subtrace)))]
         (let [retval (apply clojure-fn args)
-              trace (:trace @state)]
-          {:trace (dynamic.trace/with-retval trace retval)
-           :weight (:weight @state)}))))
+              trace  @!trace]
+          (dynamic.trace/with-retval trace retval)))))
 
   #?@(:clj
       [clojure.lang.IFn
@@ -221,3 +185,82 @@
   [& args]
   {:clj-kondo/lint-as 'clojure.core/fn}
   (apply gen-body args))
+
+;; ## Generate impl
+
+(defn ^:no-doc assoc-state
+  "combine by adding weights?"
+  [state k {:keys [trace weight]}]
+  (-> state
+      (update :trace dynamic.trace/add-call k trace)
+      (update :weight + weight)))
+
+(extend-type DynamicDSLFunction
+  gf/IGenerate
+  (-generate [gf args constraints]
+    (let [trace  (dynamic.trace/trace gf args)
+          !state (atom {:trace trace :weight 0.0})]
+      (binding [dynamic.trace/*splice*
+                (fn [^DynamicDSLFunction gf args]
+                  (apply (.-clojure-fn gf) args))
+
+                dynamic.trace/*trace*
+                (fn [k gf args]
+                  (dynamic.trace/validate-empty! (:trace @!state) k)
+                  (let [{subtrace :trace :as ret}
+                        (let [k-constraints (choice-map/get-submap constraints k)]
+                          (gf/generate gf args k-constraints))]
+                    (swap! !state assoc-state k ret)
+                    (trace/get-retval subtrace)))]
+        (let [retval (apply (.-clojure-fn gf) args)
+              state  @!state]
+          (update state :trace dynamic.trace/with-retval retval))))))
+
+;; ## Assess
+;;
+;; TODO figure out visited / unvisited??
+
+(extend-type DynamicDSLFunction
+  gf/IAssess
+  (assess [gf args choices]
+    (let [!weight (atom 0.0)]
+      (binding [dynamic.trace/*splice*
+                (fn [^DynamicDSLFunction gf args]
+                  (apply (.-clojure-fn gf) args))
+
+                dynamic.trace/*trace*
+                (fn [k gf args]
+                  (let [{:keys [weight retval]}
+                        (let [k-choices (choice-map/get-submap choices k)]
+                          (gf/assess gf args k-choices))]
+                    (swap! !weight + weight)
+                    retval))]
+        (let [retval (apply (.-clojure-fn gf) args)]
+          {:weight @!weight
+           :retval retval})))))
+
+
+;; ## Propose
+;;
+;; TODO figure out visited / unvisited??
+
+(extend-type DynamicDSLFunction
+  gf/IPropose
+  (propose [gf args]
+    (let [!state (atom {:choices (choice-map/choicemap)
+                        :weight  0.0})]
+      (binding [dynamic.trace/*splice*
+                (fn [^DynamicDSLFunction gf args]
+                  (apply (.-clojure-fn gf) args))
+
+                dynamic.trace/*trace*
+                (fn [k gf args]
+                  (let [{:keys [submap weight retval]} (gf/propose gf args)]
+                    (swap! !state
+                           (fn [m]
+                             (-> m
+                                 (update :choices choice-map/cm:assoc k submap)
+                                 (update :weight + weight))))
+                    retval))]
+        (let [retval (apply (.-clojure-fn gf) args)]
+          (assoc @!state :retval retval))))))
