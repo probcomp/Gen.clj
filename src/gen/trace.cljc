@@ -30,19 +30,13 @@
     in a trace."))
 
 ;; From the original docs: "If you want to use MCMC on models that call your
-;; generative function, then implement [[IUpdate]] and [[IRegenerate]]."
+;; generative function, then implement [[IUpdate]].
 
 (defprotocol IUpdate
   (-update [trace args argdiffs constraints]
     "Updates a trace by changing the arguments and / or providing new values for
     some existing random choice(s) and values for some newly introduced random
     choice(s)."))
-
-(defprotocol IRegenerate
-  (-regenerate [trace args argdiffs selection]
-    "Updates a trace by changing the arguments and / or randomly sampling new
-    values for selected random choices using the internal proposal distribution
-    family."))
 
 (defprotocol ITrainable
   (accumulate-param-gradients! [_ _ _]
@@ -72,9 +66,6 @@ back this out."))
 (defn can-update? [t]
   (satisfies? IUpdate t))
 
-(defn can-regenerate? [t]
-  (satisfies? IRegenerate t))
-
 (defn update
   "Updates a trace by changing the arguments and / or providing new values for
     some existing random choice(s) and values for some newly introduced random
@@ -88,17 +79,3 @@ back this out."))
      (-update trace args diffs constraints)))
   ([trace args argdiffs constraints]
    (-update trace args argdiffs constraints)))
-
-(defn regenerate
-  "Updates a trace by changing the arguments and / or randomly sampling new
-    values for selected random choices using the internal proposal distribution
-    family.
-
-  The 2-arity version is a shorthand variant which assumes the arguments are
-  unchanged."
-  ([trace selection]
-   (let [args  (get-args trace)
-         diffs (repeat (count args) diff/no-change)]
-     (-update trace args diffs selection)))
-  ([trace args argdiffs selection]
-   (-update trace args argdiffs selection)))
