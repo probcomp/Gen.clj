@@ -4,7 +4,7 @@
             [clojure.test.check.generators :as gen]
             [gen.diff :as diff]
             [gen.distribution :as dist]
-            [gen.dynamic.choice-map :as choice-map]
+            [gen.dynamic.choicemap :as choicemap]
             [gen.generative-function :as gf]
             [gen.trace :as trace]
             [gen.test-check-util :refer [gen-double within]]
@@ -64,7 +64,7 @@
 
   (testing "bernoulli-choices-noargs"
     (is (boolean?
-         (choice-map/unwrap
+         (choicemap/unwrap
           (trace/get-choices (gf/simulate bernoulli-dist []))))))
 
   (testing "bernoulli-update-weight"

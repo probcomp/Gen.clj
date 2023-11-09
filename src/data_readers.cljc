@@ -1,2 +1,2 @@
-{gen/choice gen.choice-map/parse-choice
- gen/choice-map gen.choice-map/parse-choice-map}
+{gen/choice gen.choicemap/parse-choice
+ gen/choicemap gen.choicemap/parse-choicemap}

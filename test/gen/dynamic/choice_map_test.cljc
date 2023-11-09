@@ -1,40 +1,40 @@
-(ns gen.dynamic.choice-map-test
+(ns gen.dynamic.choicemap-test
   (:refer-clojure :exclude [empty empty?])
   (:require [clojure.core :as clojure]
             [clojure.test :refer [deftest is]]
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]]
-            [gen.dynamic.choice-map :as choice-map]))
+            [gen.dynamic.choicemap :as choicemap]))
 
-(def gen-choice-map
-  (comp (partial gen/fmap choice-map/choice-map)
+(def gen-choicemap
+  (comp (partial gen/fmap choicemap/choicemap)
         gen/map))
 
 (deftest choice
-  (is (choice-map/choice? (choice-map/choice nil)))
-  (is (choice-map/choice? #gen/choice nil))
-  (is (choice-map/choice? (choice-map/choice :x)))
-  (is (choice-map/choice? #gen/choice :x))
-  (is (choice-map/choice? (choice-map/choice [:x])))
-  (is (choice-map/choice? #gen/choice [:x]))
-  (is (choice-map/choice? (choice-map/choice {:x 0})))
-  (is (choice-map/choice? #gen/choice {:x 0}))
-  (is (not (choice-map/choice? nil)))
-  (is (not (choice-map/choice? :x))))
+  (is (choicemap/choice? (choicemap/choice nil)))
+  (is (choicemap/choice? #gen/choice nil))
+  (is (choicemap/choice? (choicemap/choice :x)))
+  (is (choicemap/choice? #gen/choice :x))
+  (is (choicemap/choice? (choicemap/choice [:x])))
+  (is (choicemap/choice? #gen/choice [:x]))
+  (is (choicemap/choice? (choicemap/choice {:x 0})))
+  (is (choicemap/choice? #gen/choice {:x 0}))
+  (is (not (choicemap/choice? nil)))
+  (is (not (choicemap/choice? :x))))
 
-(deftest choice-map?
-  (is (choice-map/choice-map? #gen/choice-map {}))
-  (is (not (choice-map/choice-map? {}))))
+(deftest choicemap?
+  (is (choicemap/choicemap? #gen/choicemap {}))
+  (is (not (choicemap/choicemap? {}))))
 
-(deftest choice-map-value
-  (is (= nil (choice-map/unwrap #gen/choice nil)))
-  (is (= :x (choice-map/unwrap #gen/choice :x))))
+(deftest choicemap-value
+  (is (= nil (choicemap/unwrap #gen/choice nil)))
+  (is (= :x (choicemap/unwrap #gen/choice :x))))
 
 (deftest empty?
-  (is (clojure/empty? (choice-map/choice-map)))
-  (is (clojure/empty? #gen/choice-map {}))
+  (is (clojure/empty? (choicemap/choicemap)))
+  (is (clojure/empty? #gen/choicemap {}))
   #_{:clj-kondo/ignore [:not-empty?]}
-  (is (not (clojure/empty? #gen/choice-map {:x 0}))))
+  (is (not (clojure/empty? #gen/choicemap {:x 0}))))
 
 (defn iterable-seq [^Iterable iter]
   (when (.hasNext iter)
@@ -44,13 +44,13 @@
 
 (deftest interface-tests
   (checking "Interface tests for choice maps"
-            [m (gen-choice-map gen/keyword gen/any-equatable)]
+            [m (gen-choicemap gen/keyword gen/any-equatable)]
             #?(:clj
                (is (= (seq m)
                       (iterable-seq
                        (.iterator ^Iterable m)))
                    "iterator impl matches seq"))
 
-            (is (= m (choice-map/choice-map
+            (is (= m (choicemap/choicemap
                       (zipmap (keys m) (vals m))))
                 "keys and vals work correctly")))

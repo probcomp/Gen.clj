@@ -7,7 +7,7 @@
   #?(:cljs
      (:require-macros [gen.dynamic :refer [untraced]])))
 
-;; TODO move `trace!` to `gen`, figure out how to kill `splice!`.
+;; TODO move `trace!` to `gen`.
 
 (defn trace! [& _]
   {:arglists '([addr f & xs])}
@@ -18,6 +18,7 @@
   {:arglists '([f & xs])}
   (throw
    (ex-info "Illegal usage of `splice!` out of `gen`." {})))
+
 
 (defmacro untraced
   [& body]
@@ -247,7 +248,7 @@
                      (swap! !state
                             (fn [m]
                               (-> m
-                                  (update :choices choice-map/cm:assoc k submap)
+                                  (update :choices assoc k submap)
                                   (update :weight + weight))))
                      retval)))]
         (let [retval (apply (.-clojure-fn gf) args)]

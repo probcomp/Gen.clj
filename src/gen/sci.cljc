@@ -7,7 +7,6 @@
             [gen.distribution.kixi]
             [gen.distribution.math.log-likelihood]
             [gen.dynamic]
-            [gen.dynamic.choice-map]
             [gen.dynamic.trace]
             [gen.generative-function]
             [gen.inference.importance]
@@ -26,9 +25,7 @@
    'gen.distribution                     (sci/copy-ns gen.distribution (sci/create-ns 'gen.distribution))
    'gen.distribution.kixi                (sci/copy-ns gen.distribution.kixi (sci/create-ns 'gen.distribution.kixi))
    'gen.distribution.math.log-likelihood (sci/copy-ns gen.distribution.math.log-likelihood (sci/create-ns 'gen.distribution.math.log-likelihood))
-   'gen.dynamic                          (-> (sci/copy-ns gen.dynamic (sci/create-ns 'gen.dynamic))
-                                             (assoc 'gen gen-macro))
-   'gen.dynamic.choice-map               (sci/copy-ns gen.dynamic.choice-map (sci/create-ns 'gen.dynamic.choice-map))
+   'gen.dynamic                          (-> (sci/copy-ns gen.dynamic (sci/create-ns 'gen.dynamic)) (assoc 'gen gen-macro))
    'gen.dynamic.trace                    (sci/copy-ns gen.dynamic.trace (sci/create-ns 'gen.dynamic.trace))
    'gen.generative-function              (sci/copy-ns gen.generative-function (sci/create-ns 'gen.generative-function))
    'gen.inference.importance             (sci/copy-ns gen.inference.importance (sci/create-ns 'gen.inference.importance))

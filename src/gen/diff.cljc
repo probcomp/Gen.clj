@@ -2,6 +2,9 @@
 
 (defprotocol IDiff)
 
+(defn diff? [x]
+  (satisfies? IDiff x))
+
 (defrecord NoChange []
   IDiff)
 

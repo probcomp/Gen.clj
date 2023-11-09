@@ -1,6 +1,6 @@
 (ns gen.generative-function
   (:require [gen.trace :as trace]
-            [gen.choice-map :as choice-map]))
+            [gen.choicemap :as choicemap]))
 
 ;; https://www.gen.dev/docs/stable/ref/gfi/#Generative-function-interface-1
 
@@ -60,15 +60,7 @@
      {:trace trace
       :weight 0.0}))
   ([gf args constraints]
-   ;; TODO test constraints that are NOT a choice map and convert them on the
-   ;; way in!
-   ;;
-   ;; TODO also guard against empty constraints.
-   ;;
-   ;; TODO test that all get_submap return empty submap on missing constraints.
-   (let [constraints (if (choice-map/choice-map? constraints)
-                       constraints
-                       (choice-map/choicemap constraints))]
+   (let [constraints (choicemap/choicemap constraints)]
      (if (empty? constraints)
        (generate gf args)
        (-generate gf args constraints)))))

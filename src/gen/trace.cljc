@@ -9,7 +9,7 @@
   (get-args [trace] "Returns the argument tuple for a given execution.")
   (get-retval [trace] "Returns the return value of a given execution.")
   (get-choices [trace]
-    "Returns an instance of [[gen.choice-map/IChoiceMap]].
+    "Returns an instance of [[gen.choicemap/IChoiceMap]].
 
   NOTE that the value of any non-addressed randomness is not externally
   accessible.")

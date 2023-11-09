@@ -2,7 +2,7 @@
 (ns intro-to-modeling
   {:nextjournal.clerk/toc true}
   (:require [gen.dynamic :as dynamic :refer [gen]]
-            [gen.dynamic.choice-map :refer [choice-map]]
+            [gen.dynamic.choicemap :refer [choicemap]]
             [gen.clerk.callout :as callout]
             [gen.clerk.viewer :as viewer]
             [gen.distribution.kixi :as dist]
@@ -584,7 +584,7 @@ math/PI
 
 ;; ```clojure
 ;; (require '[gen.inference.importance :as importance]
-;;          '[gen.dynamic.choice-map :refer [choice-map]])
+;;          '[gen.dynamic.choicemap :refer [choicemap]])
 ;; ```
 
 (defn do-inference
@@ -594,7 +594,7 @@ math/PI
   ;; them to be inferred.
   (let [observations (reduce (fn [observations [i y]]
                                (assoc observations [:y i] y))
-                             (choice-map {})
+                             (choicemap {})
                              (map-indexed vector ys))]
     (:trace (importance/resampling model [xs] observations amount-of-computation))))
 
@@ -660,7 +660,7 @@ math/PI
 
 ;; For example:
 
-(def predicting-constraints (choice-map {:slope 0 :intercept 0}))
+(def predicting-constraints (choicemap {:slope 0 :intercept 0}))
 (def predicting-trace (:trace (gf/generate line-model [xs] predicting-constraints)))
 
 (def predict-opts
@@ -692,7 +692,7 @@ math/PI
   ;; constraints.
   (let [constraints (reduce (fn [cm param-addr]
                               (assoc cm param-addr (get trace param-addr)))
-                            (choice-map {})
+                            (choicemap {})
                             param-addrs)
 
         ;; Run the model with new x coordinates, and with parameters
@@ -881,19 +881,19 @@ math/PI
 (comment
   (def sine-model-fancy
     (gen [xs]
-      (let [period (dynamic/trace! :period dist/gamma 5 1)
-            amplitude (dynamic/trace! :amplitude dist/gamma 1 1)
-            phase (dynamic/trace! :phase dist/uniform 0 (* 2 math/PI))
-            noise (dynamic/trace! :noise dist/gamma 1 1)
-            y (fn [x]
-                (* amplitude
-                   (math/sin (+ (* x
-                                   (/ (* 2 math/PI)
-                                      period))
-                                phase))))]
-        (doseq [[i x] (map-indexed vector xs)]
-          (dynamic/trace! [:y i] dist/normal (y x) noise)))
-      y)))
+         (let [period (dynamic/trace! :period dist/gamma 5 1)
+               amplitude (dynamic/trace! :amplitude dist/gamma 1 1)
+               phase (dynamic/trace! :phase dist/uniform 0 (* 2 math/PI))
+               noise (dynamic/trace! :noise dist/gamma 1 1)
+               y (fn [x]
+                   (* amplitude
+                      (math/sin (+ (* x
+                                      (/ (* 2 math/PI)
+                                         period))
+                                   phase))))]
+           (doseq [[i x] (map-indexed vector xs)]
+             (dynamic/trace! [:y i] dist/normal (y x) noise)))
+         y)))
 
 ;; ## 5. Calling other generative functions
 
@@ -923,14 +923,19 @@ math/PI
 
 (def foo
   (gen []
-    (dynamic/trace! :y dist/normal 0 1)))
+       (dynamic/trace! :y dist/normal 0 1)))
+
+(gen []
+     (let [x   (dynamic/trace! :x dist/normal 0 1)
+           x_y (dynamic/trace! :x foo)]
+       (+ x x_y)))
 
 (def bar
   (gen []
-    (dynamic/trace! :x dist/bernoulli 0.5)
-    ;; Call `foo` with `dynamic/splice!`. Its choices (`:y`) will appear directly
-    ;; within the trace of `bar`.
-    (dynamic/splice! foo)))
+       (dynamic/trace! :x dist/bernoulli 0.5)
+       ;; Call `foo` with `dynamic/splice!`. Its choices (`:y`) will appear directly
+       ;; within the trace of `bar`.
+       (dynamic/splice! foo)))
 
 (def bar-with-key
   (gen []
@@ -952,7 +957,7 @@ math/PI
 ;; collisions for complex models.
 
 ;; Hierarchical traces are represented using nested choice maps
-;; (`gen.dynamic.choice-map/ChoiceMap`). Hierarchical addresses can be accessed
+;; (`gen.dynamic.choicemap/ChoiceMap`). Hierarchical addresses can be accessed
 ;; using `clojure.core` functions like `clojure.core/get-in`.
 
 (get-in bar-with-key-trace [:z :y])

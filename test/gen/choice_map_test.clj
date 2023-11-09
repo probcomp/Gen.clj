@@ -1,4 +1,4 @@
-(ns gen.choice-map-test)
+(ns gen.choicemap-test)
 
 #_(let [m (->SortedMapChoiceMap
            (sorted-map :d 'a :a (->SortedMapChoiceMap

@@ -1,4 +1,4 @@
-(ns gen.choice-map
+(ns gen.choicemap
   (:refer-clojure :exclude [assoc-in merge])
   (:require [clojure.pprint :as pprint]
             [gen.array :as arr])
@@ -20,7 +20,7 @@
   (get-values-shallow [m] "Return just values")
   (get-submaps-shallow [m] "Returns just submaps"))
 
-(defn choice-map? [x]
+(defn choicemap? [x]
   (satisfies? IChoiceMap x))
 
 (defn has-value?
@@ -139,7 +139,7 @@
 
        IPrintWithWriter
        (-pr-writer [_ writer _]
-                   (-write writer "#gen/choice-map {}"))
+                   (-write writer "#gen/choicemap {}"))
 
        IFn
        (-invoke [_ _] nil)
@@ -177,11 +177,11 @@
 #?(:clj
    (defmethod print-method EmptyChoiceMap
      [_ ^java.io.Writer w]
-     (.write w "#gen/choice-map {}")))
+     (.write w "#gen/choicemap {}")))
 
 (defmethod pprint/simple-dispatch EmptyChoiceMap [_]
-  #?(:clj  (.write ^java.io.Writer *out* "#gen/choice-map {}")
-     :cljs (-write *out* "#gen/choice-map {}")))
+  #?(:clj  (.write ^java.io.Writer *out* "#gen/choicemap {}")
+     :cljs (-write *out* "#gen/choicemap {}")))
 
 (def EMPTY
   "Empty choicemap singleton."
@@ -280,7 +280,7 @@
 
        IPrintWithWriter
        (-pr-writer [_ writer opts]
-                   (-write writer "#gen/choice-map ")
+                   (-write writer "#gen/choicemap ")
                    (-pr-writer m writer opts))
 
        IFn
@@ -325,13 +325,13 @@
 #?(:clj
    (defmethod print-method DynamicChoiceMap
      [^DynamicChoiceMap m ^java.io.Writer w]
-     (.write w "#gen/choice-map ")
+     (.write w "#gen/choicemap ")
      (print-method (.-m m) w)))
 
 (defmethod pprint/simple-dispatch DynamicChoiceMap
   [^DynamicChoiceMap m]
-  #?(:clj (.write ^java.io.Writer *out* "#gen/choice-map ")
-     :cljs (-write *out* "#gen/choice-map "))
+  #?(:clj (.write ^java.io.Writer *out* "#gen/choicemap ")
+     :cljs (-write *out* "#gen/choicemap "))
   (pprint/simple-dispatch (.-m m)))
 
 ;; ## Vector
@@ -428,7 +428,7 @@
 
        IPrintWithWriter
        (-pr-writer [_ writer opts]
-                   (-write writer "#gen/choice-map ")
+                   (-write writer "#gen/choicemap ")
                    (-pr-writer v writer opts))
 
        IFn
@@ -481,13 +481,13 @@
 #?(:clj
    (defmethod print-method VectorChoiceMap
      [^VectorChoiceMap m ^java.io.Writer w]
-     (.write w "#gen/choice-map ")
+     (.write w "#gen/choicemap ")
      (print-method (.-v m) w)))
 
 #?(:clj
    (defmethod pprint/simple-dispatch VectorChoiceMap
      [^VectorChoiceMap m]
-     (.write ^java.io.Writer *out* "#gen/choice-map ")
+     (.write ^java.io.Writer *out* "#gen/choicemap ")
      (pprint/simple-dispatch (.-v m))))
 
 (declare choicemap)
@@ -500,11 +500,11 @@
   [form]
   `(->Choice ~form))
 
-(defn ^:no-doc parse-choice-map
+(defn ^:no-doc parse-choicemap
   "Implementation of a reader literal that turns literal map forms into calls
-  to [[choice-map]].
+  to [[choicemap]].
 
-  Installed by default under `#gen/choice-map`."
+  Installed by default under `#gen/choicemap`."
   [form]
   `(choicemap ~form))
 
@@ -513,7 +513,7 @@
 (defn ^:no-doc equiv
   "Assumes that `l` is a [[ChoiceMap]]."
   [l r]
-  (and (choice-map? r)
+  (and (choicemap? r)
        (= (get-submaps-shallow l)
           (get-submaps-shallow r))))
 
@@ -543,10 +543,10 @@
   "Returns a choicemap, vector map etc TODO describe!"
   ([] EMPTY)
   ([x]
-   (cond (choice-map? x) x
-         (vector? x) (vector->choicemap x)
-         (map? x) (map->choicemap x)
-         :else (->Choice x))))
+   (cond (choicemap? x) x
+         (vector? x)     (vector->choicemap x)
+         (map? x)        (map->choicemap x)
+         :else           (->Choice x))))
 
 (defn ->map
   "Returns a map with all entries in the choicemap.
@@ -554,7 +554,7 @@
   NOTE that this will lose the distinctions between a submap and a value of type
   `map`."
   [cm]
-  (if (choice-map? cm)
+  (if (choicemap? cm)
     (if (has-value? cm)
       (get-value cm)
       (update-vals (get-submaps-shallow cm)

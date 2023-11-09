@@ -3,7 +3,7 @@
   (:require [clojure.core :as clojure]
             [clojure.test :refer [deftest is]]
             [gen.dynamic :refer [gen]]
-            [gen.dynamic.choice-map :as dynamic.choice-map]
+            [gen.dynamic.choicemap :as dynamic.choicemap]
             [gen.dynamic.trace :as dynamic.trace]
             [gen.trace :as trace]))
 
@@ -15,7 +15,7 @@
 
 (defn choice-trace [x]
   (reify trace/ITrace
-    (get-choices [_] (dynamic.choice-map/choice x))))
+    (get-choices [_] (dynamic.choicemap/choice x))))
 
 (deftest empty?
   (let [trace (dynamic.trace/trace (gen []) [])]

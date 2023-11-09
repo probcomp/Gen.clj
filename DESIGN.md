@@ -7,3 +7,6 @@ return get_choice? isn't that the actual important idea?
 
 - [ ] implement George's change to the choicemap interface, so `get_value` and
       `has_value` work on anything as a default.
+
+- [ ] put the map-vs-Call distinction back into the dynamic trace, so I can have
+      nested addresses.

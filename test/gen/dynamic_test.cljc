@@ -34,56 +34,56 @@
 (deftest simulate-trace
   (let [gf (gen [] (dynamic/trace! :addr d/bernoulli))
         trace (gf/simulate gf [])
-        choice-map (trace/get-choices trace)]
+        choicemap (trace/get-choices trace)]
     (is (= #{:addr} (set (keys trace))))
-    (is (= #{:addr} (set (keys choice-map))))
+    (is (= #{:addr} (set (keys choicemap))))
     (is (boolean? (:addr trace)))
-    (is (boolean? (:addr choice-map)))))
+    (is (boolean? (:addr choicemap)))))
 
 (deftest simulate-splice
   (let [gf0 (gen [] (dynamic/trace! :addr d/bernoulli))
         gf1 (gen [] (dynamic/splice! gf0))
         trace (gf/simulate gf1 [])
-        choice-map (trace/get-choices trace)]
+        choicemap (trace/get-choices trace)]
     (is (= #{:addr} (set (keys trace))))
-    (is (= #{:addr} (set (keys choice-map))))
+    (is (= #{:addr} (set (keys choicemap))))
     (is (boolean? (:addr trace)))
-    (is (boolean? (:addr choice-map)))))
+    (is (boolean? (:addr choicemap)))))
 
 (deftest generate-trace-trace
   (let [gf (gen [] (dynamic/trace! :addr d/bernoulli))
         trace (:trace (gf/generate gf []))
-        choice-map (trace/get-choices trace)]
+        choicemap (trace/get-choices trace)]
     (is (= #{:addr} (set (keys trace))))
-    (is (= #{:addr} (set (keys choice-map))))
+    (is (= #{:addr} (set (keys choicemap))))
     (is (boolean? (:addr trace)))
-    (is (boolean? (:addr choice-map)))))
+    (is (boolean? (:addr choicemap)))))
 
 (deftest generate-splice-trace
   (let [gf0 (gen [] (dynamic/trace! :addr d/bernoulli))
         gf1 (gen [] (dynamic/splice! gf0))
         trace (:trace (gf/generate gf1 []))
-        choice-map (trace/get-choices trace)]
+        choicemap (trace/get-choices trace)]
     (is (= #{:addr} (set (keys trace))))
-    (is (= #{:addr} (set (keys choice-map))))
+    (is (= #{:addr} (set (keys choicemap))))
     (is (boolean? (:addr trace)))
-    (is (boolean? (:addr choice-map)))))
+    (is (boolean? (:addr choicemap)))))
 
 (deftest generate-call-trace
   (let [gf0 (gen [] (dynamic/trace! :addr d/bernoulli))
         gf1 (gen [] (dynamic/untraced (gf0)))
         trace (:trace (gf/generate gf1 []))
-        choice-map (trace/get-choices trace)]
+        choicemap (trace/get-choices trace)]
     (is (empty? trace))
-    (is (empty? choice-map))))
+    (is (empty? choicemap))))
 
 (deftest generate-call-splice
   (let [gf0 (gen [] (d/bernoulli))
         gf1 (gen [] (gf0))
         trace (:trace (gf/generate gf1 []))
-        choice-map (trace/get-choices trace)]
+        choicemap (trace/get-choices trace)]
     (is (empty? trace))
-    (is (empty? choice-map))))
+    (is (empty? choicemap))))
 
 (deftest score
   (is (= 0.5 (math/exp (trace/get-score (gf/simulate d/bernoulli [0.5])))))
@@ -94,24 +94,24 @@
 
 (deftest update-discard-yes
   (let [gf (gen []
-             (dynamic/trace! :discarded d/bernoulli 0))]
-    (is (= #gen/choice-map {:discarded false}
+                (dynamic/trace! :discarded d/bernoulli 0))]
+    (is (= #gen/choicemap {:discarded false}
            (-> (gf/simulate gf [])
-               (trace/update #gen/choice-map {:discarded true})
+               (trace/update #gen/choicemap {:discarded true})
                (:discard))))))
 
 (deftest update-discard-no
   (let [gf (gen []
-             (dynamic/trace! :not-discarded d/bernoulli 0))]
+                (dynamic/trace! :not-discarded d/bernoulli 0))]
     (is (empty? (-> (gf/simulate gf [])
-                    (trace/update #gen/choice-map {:discarded true})
+                    (trace/update #gen/choicemap {:discarded true})
                     (:discard))))))
 
 (deftest update-discard-both
   (let [gf (gen []
-             (dynamic/trace! :discarded d/bernoulli 0)
-             (dynamic/trace! :not-discarded d/bernoulli 1))]
-    (is (= #gen/choice-map {:discarded false}
+                (dynamic/trace! :discarded d/bernoulli 0)
+                (dynamic/trace! :not-discarded d/bernoulli 1))]
+    (is (= #gen/choicemap {:discarded false}
            (-> (gf/simulate gf [])
-               (trace/update #gen/choice-map {:discarded true})
+               (trace/update #gen/choicemap {:discarded true})
                (:discard))))))
