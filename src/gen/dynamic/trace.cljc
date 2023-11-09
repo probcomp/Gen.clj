@@ -7,10 +7,7 @@
             [gen.generative-function :as gf]
             [gen.trace :as trace])
   #?(:cljs
-     (:require-macros [gen.dynamic.trace]))
-  #?(:clj
-     (:import
-      (clojure.lang Associative IFn IObj IMapIterable))))
+     (:require-macros [gen.dynamic.trace])))
 
 (defn no-op
   ([gf args]
@@ -44,9 +41,7 @@
   trace/ITrace
   (get-args [_] args)
   (get-retval [_] val)
-  ;; TODO yes, this is the reason we need ValueChoiceMap, a single thing...
-  ;; fix!!
-  (get-choices [_] val)
+  (get-choices [_] (cm/->Choice val))
   (get-gen-fn [_] gen-fn)
   (get-score [_] score)
 
@@ -62,49 +57,32 @@
 
 ;; ## Choice Map for address-like trace
 
-(defrecord Choice [retval score]
-  cm/IArray
-  (to-array [_] [retval])
-  (-from-array [_ xs idx]
-    [1 (Choice. (nth xs idx) score)]))
-
-;; TODO I THINK I WILL ONLY NEED THIS and can get rid of the Choice abstraction.
 (defrecord Call [subtrace score noise])
 
 (deftype ChoiceMap [m]
   cm/IChoiceMap
-  ;; TODO currently buggy since we never put `Choice` instances in, we only
-  ;; put [[Call]] instances in. So we want some way of detecting that we are at
-  ;; a ValueTrace.
-  (has-value? [m k]
-    (instance? Choice (get m k)))
-
-  (get-value [m k]
-    (when-let [v (get m k)]
-      (when (instance? Choice v)
-        (:retval v))))
-
-  (has-submap? [m k]
-    (instance? Call (get m k)))
-
-  ;; TODO these error on the wrong fetch in the original. is that right?? and
-  ;; empty returns EmptyChoiceMap, never nil.
+  (-has-value? [_] false)
+  (-get-value [_] nil)
+  (has-submap? [m k] (contains? m k))
   (get-submap [m k]
-    (when-let [v (get m k)]
+    (let [v (get m k)]
       (cond (instance? Call v)
             (trace/get-choices (:subtrace v))
 
             (map? v)
             (ChoiceMap. v)
 
-            :else nil)))
+            :else cm/EMPTY)))
 
   (get-values-shallow [_]
     (persistent!
      (reduce-kv
       (fn [acc k v]
-        (if (instance? Choice v)
-          (assoc! acc k (:retval v))
+        (if (instance? Call v)
+          (let [m (trace/get-choices (:subtrace v))]
+            (if (cm/has-value? m)
+              (assoc! acc k (cm/get-value m))
+              acc))
           acc))
       (transient {})
       m)))
@@ -113,13 +91,10 @@
     (persistent!
      (reduce-kv
       (fn [acc k v]
-        (cond (instance? Call v)
-              (assoc! acc k (trace/get-choices (:subtrace v)))
-
-              (map? v)
-              (assoc! acc k (ChoiceMap. v))
-
-              :else acc))
+        (assoc! acc k
+                (if (instance? Call v)
+                  (trace/get-choices (:subtrace v))
+                  (ChoiceMap. v))))
       (transient {})
       m))))
 
@@ -129,94 +104,7 @@
   (get-retval [_] retval)
   (get-gen-fn [_] gen-fn)
   (get-choices [_] (->ChoiceMap trie))
-  (get-score [_] score)
-
-  #?@(:cljs
-      [Object
-       (equiv [this other] (-equiv this other))
-
-       IFn
-       (-invoke [this k] (-lookup this k))
-       (-invoke [this k not-found] (-lookup this k not-found))
-
-       IMeta
-       (-meta [_] (meta trie))
-
-       IWithMeta
-       (-with-meta [_ m] (Trace. gen-fn args (with-meta trie m) retval))
-
-
-       ;; ICloneable
-       ;; (-clone [_] (Trace. (-clone m)))
-
-       IIterable
-       (-iterator [this] (-iterator (trace/get-choices this)))
-
-       ;; ICollection
-       ;; (-conj [_ entry])
-
-       ;; IEmptyableCollection
-       ;; (-empty [_])
-
-       IEquiv
-       (-equiv [this that] (= this that))
-
-       ;; IHash
-       ;; (-hash [_] (-hash m))
-
-       ISeqable
-       (-seq [this] (-seq (trace/get-choices this)))
-
-       ICounted
-       (-count [_] (-count trie))
-
-       ILookup
-       (-lookup [this k]
-                (-lookup (trace/get-choices this) k))
-       (-lookup [this k not-found]
-                (-lookup (trace/get-choices this) k not-found))
-
-       IAssociative
-       ;; (-assoc [_ k v] (Trace. (-assoc m k (choice v))))
-       (-contains-key? [_ k] (-contains-key? trie k))
-
-       IFind
-       (-find [this k]
-              (-find (trace/get-choices this) k))]
-
-      :clj
-      [Object
-       (equals [this that] (= this that))
-
-       IFn
-       (invoke [this k] (.valAt this k))
-       (invoke [this k not-found] (.valAt this k not-found))
-
-       IObj
-       (meta [_] (meta trie))
-       (withMeta [_ m] (Trace. gen-fn (with-meta trie m) score noise args retval))
-
-       Associative
-       (containsKey [_ k] (contains? trie k))
-       (entryAt [_ k] (.entryAt ^Associative trie k))
-       (count [_] (count trie))
-       (seq [this] (seq (trace/get-choices this)))
-       (valAt [this k]
-              (get (trace/get-choices this) k))
-       (valAt [this k not-found]
-              (get (trace/get-choices this) k not-found))
-       (equiv [this that] (= this that))
-       ;; TODO missing `cons`, `empty`?
-
-       IMapIterable
-       (keyIterator [this]
-                    (.iterator ^Iterable (keys (trace/get-choices this))))
-       (valIterator [this]
-                    (.iterator ^Iterable (vals (trace/get-choices this))))
-
-       Iterable
-       (iterator [this]
-                 (.iterator ^Iterable (trace/get-choices this)))]))
+  (get-score [_] score))
 
 (defn trace
   "new trace.

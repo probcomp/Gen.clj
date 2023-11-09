@@ -7,7 +7,7 @@
   #?(:cljs
      (:require-macros [gen.dynamic :refer [untraced]])))
 
-;; TODO move these to `gen`.
+;; TODO move `trace!` to `gen`, figure out how to kill `splice!`.
 
 (defn trace! [& _]
   {:arglists '([addr f & xs])}
@@ -195,6 +195,8 @@
       (update :trace dynamic.trace/add-call k trace)
       (update :weight + weight)))
 
+;; TODO figure out visited / unvisited??
+
 (extend-type DynamicDSLFunction
   gf/IGenerate
   (-generate [gf args constraints]
@@ -213,13 +215,8 @@
                      (trace/get-retval subtrace))))]
         (let [retval (apply (.-clojure-fn gf) args)
               state  @!state]
-          (update state :trace dynamic.trace/with-retval retval))))))
+          (update state :trace dynamic.trace/with-retval retval)))))
 
-;; ## Assess
-;;
-;; TODO figure out visited / unvisited??
-
-(extend-type DynamicDSLFunction
   gf/IAssess
   (assess [gf args choices]
     (let [!weight (atom 0.0)]
@@ -235,14 +232,8 @@
                      retval)))]
         (let [retval (apply (.-clojure-fn gf) args)]
           {:weight @!weight
-           :retval retval})))))
+           :retval retval}))))
 
-
-;; ## Propose
-;;
-;; TODO figure out visited / unvisited??
-
-(extend-type DynamicDSLFunction
   gf/IPropose
   (propose [gf args]
     (let [!state (atom {:choices (choice-map/choicemap)
