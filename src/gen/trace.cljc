@@ -79,3 +79,10 @@ back this out."))
      (-update trace args diffs constraints)))
   ([trace args argdiffs constraints]
    (-update trace args argdiffs constraints)))
+
+(defn trace->map [t]
+  (-> {:gen-fn  (get-gen-fn t)
+       :args    (get-args t)
+       :retval  (get-retval t)
+       :choices (get-choices t)
+       :score   (get-score t)}))

@@ -75,7 +75,7 @@
    (defmethod print-method Choice
      [^Choice choice ^java.io.Writer w]
      (.write w "#gen/choice ")
-     (.write w (pr-str (.-v choice)))))
+     (print-method (.-v choice) w)))
 
 (defmethod pprint/simple-dispatch Choice [^Choice c]
   #?(:clj (.write ^java.io.Writer *out* "#gen/choice ")

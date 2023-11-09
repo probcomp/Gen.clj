@@ -35,8 +35,7 @@
 ```"))
 
 (defprotocol IAssess
-  :extend-via-metadata true
-  (assess [gf args choices]
+  (-assess [gf args choices]
     "Returns a pair of:
 
   - probability of proposing an assignment
@@ -82,4 +81,14 @@
 
 (extend-protocol IAssess
   #?(:clj Object :cljs default)
-  (assess [gf args choices] (default-assess gf args choices)))
+  (-assess [gf args choices] (default-assess gf args choices)))
+
+(defn assess
+  "Returns a pair of:
+
+  - probability of proposing an assignment
+  - the return value
+
+  TODO fix this type"
+  [gf args choices]
+  (-assess gf args (choicemap/choicemap choices)))

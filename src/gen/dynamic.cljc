@@ -1,13 +1,15 @@
 (ns gen.dynamic
-  (:require [clojure.walk :as walk]
-            [gen.choice-map :as choice-map]
-            [gen.dynamic.trace :as dynamic.trace]
+  (:require [clojure.pprint :as pprint]
+            [clojure.walk :as walk]
+            [gen.choicemap :as choicemap]
+            [gen.diff :as diff]
             [gen.generative-function :as gf]
             [gen.trace :as trace])
+  #?(:clj
+     (:import (clojure.lang Associative IFn IObj IPersistentMap
+                            MapEntry)))
   #?(:cljs
      (:require-macros [gen.dynamic :refer [untraced]])))
-
-;; TODO move `trace!` to `gen`.
 
 (defn trace! [& _]
   {:arglists '([addr f & xs])}
@@ -19,11 +21,315 @@
   (throw
    (ex-info "Illegal usage of `splice!` out of `gen`." {})))
 
+;; ## trace impl
+
+(defn no-op
+  ([gf args]
+   (apply gf args))
+  ([_k gf args]
+   (apply gf args)))
+
+(def ^:dynamic *trace*
+  "Applies the generative function gf to args. Dynamically rebound by functions
+  like `gf/simulate`, `gf/generate`, `trace/update`, etc."
+  no-op)
+
+(defn active-trace
+  "Returns the currently-active tracing function, bound to [[*trace*]].
+
+  NOTE: Prefer `([[active-trace]])` to `[[*trace*]]`, as direct access to
+  `[[*trace*]]` won't reflect new bindings when accessed inside of an SCI
+  environment."
+  [] *trace*)
+
+;; TODO move `trace!` to `gen`.
 
 (defmacro untraced
   [& body]
-  `(binding [dynamic.trace/*trace* dynamic.trace/no-op]
+  `(binding [*trace* no-op]
      ~@body))
+
+;; ## Choice Map for address-like trace
+
+(defrecord Call [subtrace score noise])
+
+(deftype ChoiceMap [m]
+  choicemap/IChoiceMap
+  (-has-value? [_] false)
+  (-get-value [_] nil)
+  (has-submap? [_ k] (contains? m k))
+  (get-submap [this k] (.invoke ^IFn this k choicemap/EMPTY))
+
+  (get-values-shallow [_]
+    (persistent!
+     (reduce-kv
+      (fn [acc k v]
+        (let [m (trace/get-choices (:subtrace v))]
+          (if (choicemap/-has-value? m)
+            (assoc! acc k (choicemap/-get-value m))
+            acc)))
+      (transient {})
+      m)))
+
+  (get-submaps-shallow [_]
+    (persistent!
+     (reduce-kv
+      (fn [acc k v]
+        (assoc! acc k (trace/get-choices (:subtrace v))))
+      (transient {})
+      m)))
+
+  #?@(:clj
+      [Object
+       (equals [this that] (choicemap/equiv this that))
+       (toString [this] (pr-str this))
+
+       IFn
+       (invoke [this k] (.invoke ^IFn this k nil))
+       (invoke [_ k not-found]
+               (if-let [v (get m k)]
+                 (trace/get-choices (:subtrace v))
+                 not-found))
+
+       IObj
+       (meta [_] (meta m))
+       (withMeta [_ meta-m]
+                 (ChoiceMap.
+                  (with-meta m meta-m)))
+
+       IPersistentMap
+       (assocEx [_ _ _] (throw (Exception.)))
+       (assoc [_ _ _]
+              (throw
+               (ex-info "ChoiceMap instances are read-only." {})))
+       (without [m k]
+                (ChoiceMap. (dissoc m k)))
+
+       Associative
+       (containsKey [_ k] (contains? m k))
+       (entryAt [this k]
+                (when (contains? m k)
+                  (MapEntry/create k (.invoke ^IFn this k nil))))
+       (cons [_ _]
+             (throw
+              (ex-info "ChoiceMap instances are read-only." {})))
+
+       (count [_] (count m))
+       (seq [_]
+            (when-let [kvs (seq m)]
+              (map (fn [[k v]]
+                     (MapEntry/create k (trace/get-choices (:subtrace v))))
+                   kvs)))
+
+       (empty [_] choicemap/EMPTY)
+       (valAt [this k] (.invoke ^IFn this k nil))
+       (valAt [this k not-found] (.invoke ^IFn this k not-found))
+       (equiv [this that] (choicemap/equiv this that))]
+
+      :cljs
+      [Object
+       (toString [_] (pr-str m))
+       (equiv [this that] (choicemap/equiv this that))
+
+       IPrintWithWriter
+       (-pr-writer [_ writer opts]
+                   (-pr-writer m writer opts))
+
+       IFn
+       (-invoke [this k] (-invoke this k nil))
+       (-invoke [_ k not-found]
+                (if-let [v (get m k)]
+                  (trace/get-choices (:subtrace v))
+                  not-found))
+
+       IMeta
+       (-meta [_] (-meta m))
+
+       IWithMeta
+       (-with-meta [_ meta-m]
+                   (ChoiceMap.
+                    (-with-meta m meta-m)))
+
+       IEmptyableCollection
+       (-empty [_] choicemap/EMPTY)
+
+       IEquiv
+       (-equiv [this that] (choicemap/equiv this that))
+
+       ISeqable
+       (-seq [_] (-seq m))
+
+       ICounted
+       (-count [_] (-count m))
+
+       ILookup
+       (-lookup [_ k] (-invoke m k nil))
+       (-lookup [_ k not-found] (-invoke m k not-found))
+
+       IAssociative
+       (-assoc [_ _ _]
+               (throw
+                (ex-info "ChoiceMap instances are read-only." {})))
+       (-contains-key? [_ k] (-contains-key? m k))
+
+       IMap
+       (-dissoc [_ k]
+                (ChoiceMap.
+                 (dissoc m k)))]))
+
+#?(:clj
+   (defmethod print-method ChoiceMap
+     [^ChoiceMap cm ^java.io.Writer w]
+     (-> (choicemap/get-submaps-shallow cm)
+         (print-method w))))
+
+(defmethod pprint/simple-dispatch ChoiceMap [cm]
+  (pprint/simple-dispatch
+   (choicemap/get-submaps-shallow cm)))
+
+(deftype Trace [gen-fn trie score noise args retval]
+  trace/ITrace
+  (get-args [_] args)
+  (get-retval [_] retval)
+  (get-gen-fn [_] gen-fn)
+  (get-choices [_] (->ChoiceMap trie))
+  (get-score [_] score))
+
+#?(:clj
+   (defmethod print-method Trace
+     [^Trace t ^java.io.Writer w]
+     (print-method (trace/trace->map t) w)))
+
+(defmethod pprint/simple-dispatch Trace [^Trace t]
+  (pprint/simple-dispatch (trace/trace->map t)))
+
+(defn trace
+  "Returns a new bare trace.
+
+  TODO pad args with defaults if available."
+  [gen-fn args]
+  (Trace. gen-fn {} 0.0 0.0 args nil))
+
+(defn validate-empty!
+  [^Trace trace addr]
+  (when (contains? (.-trie trace) addr)
+    (throw
+     (ex-info
+      "Subtrace already present at address. The same address cannot be reused
+      for multiple random choices."
+      {:addr addr}))))
+
+(defn with-retval [^Trace trace retval]
+  (Trace. (.-gen-fn trace)
+          (.-trie trace)
+          (.-score trace)
+          (.-noise trace)
+          (.-args trace)
+          retval))
+
+(defn add-call
+  "TODO handle noise."
+  [^Trace trace k subtrace]
+  (validate-empty! trace k)
+  (let [trie (.-trie trace)
+        score (trace/get-score subtrace)
+        noise 0.0 #_ (trace/project subtrace nil)
+        call  (->Call subtrace score noise)]
+    (Trace. (.-gen-fn trace)
+            (assoc trie k call)
+            (+ (.-score trace) score)
+            (+ (.-noise trace) noise)
+            (.-args trace)
+            (.-retval trace))))
+
+(defn ^:no-doc trace:= [^Trace this that]
+  (and (instance? Trace that)
+       (let [^Trace that that]
+         (and (= (.-gen-fn this) (.-gen-fn that))
+              (= (.-trie this) (.-trie that))
+              (= (.-score this) (.-score that))
+              (= (.-noise this) (.-noise that))
+              (= (.-args this) (.-args that))
+              (= (.-retval this) (.-retval that))))))
+
+;; ## Update State
+(defn ^:no-doc combine
+  "Combine trace update states. careful not to add "
+  [v k {:keys [trace weight discard]}]
+  {:trace   (add-call (:trace v) k trace)
+   :weight  (+ (:weight v) weight)
+   :discard (if (empty? discard)
+              (:discard v)
+              (assoc (:discard v) k discard))})
+
+;; ## Update impl
+;;
+;; TODO figure out what these notes mean!!
+
+;; TODO this feels weird that we need something like this...
+;;
+;; TODO can we add exec to the protocol? NO but we can do `exec` if we move all
+;; this nonsense into `gen.dynamic`... that would work!
+
+(defn ^:no-doc extract-unvisited [^Trace prev-trace new-trace]
+  (let [visited-m (choicemap/get-submaps-shallow
+                   (trace/get-choices new-trace))
+        unvisited-trie (apply dissoc
+                              (.-trie prev-trace)
+                              (keys visited-m))
+        to-subtract (reduce-kv (fn [acc _ v] (+ acc v))
+                               0.0
+                               unvisited-trie)]
+
+    [to-subtract (->ChoiceMap unvisited-trie)]))
+
+(defn assert-all-visited! [^Trace trace constraints]
+  (when-let [unvisited (keys
+                        (apply dissoc
+                               (choicemap/get-submaps-shallow constraints)
+                               (keys (.-trie trace))))]
+    (throw (ex-info "Some constraints weren't visited: "
+                    {:unvisited unvisited}))))
+
+(declare apply-inner)
+
+(extend-type Trace
+  trace/IUpdate
+  (-update [this args _ constraints]
+    (let [gen-fn (trace/get-gen-fn this)
+          state  (atom {:trace   (trace gen-fn args)
+                        :weight  0.0
+                        :discard (choicemap/choicemap)})]
+      (binding
+          [*trace*
+           (fn
+             ([gf args]
+              (apply-inner gf args))
+             ([k gen-fn args]
+              (validate-empty! (:trace @state) k)
+              (let [k-constraints (choicemap/get-submap constraints k)
+                    new-state
+                    (if-let [prev-subtrace (get (.-trie this) k)]
+                      (do
+                        (assert
+                         (= gen-fn (trace/get-gen-fn prev-subtrace))
+                         (str "Generative function changed at address " k "."))
+                        (trace/update prev-subtrace k-constraints))
+                      (gf/generate gen-fn args k-constraints))]
+                (swap! state combine k new-state)
+                (trace/get-retval
+                 (:subtrace new-state)))))]
+        (let [retval                         (apply-inner gen-fn args)
+              {:keys [trace weight discard]} @state
+              [to-subtract unvisited]        (extract-unvisited this trace)]
+          (assert-all-visited! trace constraints)
+          {:trace   (with-retval trace retval)
+           :change  diff/unknown-change
+           :weight  (- weight to-subtract)
+           :discard (reduce conj discard unvisited)})))))
+
+;; so we are going to remove the score of the unvisited stuff as we go up. Does
+;; that work?
 
 (defrecord DynamicDSLFunction [clojure-fn has-argument-grads accepts-output-grad?]
   gf/IGenerativeFunction
@@ -31,19 +337,19 @@
   (accepts-output-grad? [_] accepts-output-grad?)
   (get-params [_] ())
   (simulate [gf args]
-    (let [!trace (atom (dynamic.trace/trace gf args))]
-      (binding [dynamic.trace/*trace*
+    (let [!trace (atom (trace gf args))]
+      (binding [*trace*
                 (fn
-                  ([^DynamicDSLFunction gf args]
-                   (apply (.-clojure-fn gf) args))
+                  ([gf args]
+                   (apply-inner gf args))
                   ([k gf args]
-                   (dynamic.trace/validate-empty! @!trace k)
+                   (validate-empty! @!trace k)
                    (let [subtrace (gf/simulate gf args)]
-                     (swap! !trace dynamic.trace/add-call k subtrace)
+                     (swap! !trace add-call k subtrace)
                      (trace/get-retval subtrace))))]
         (let [retval (apply clojure-fn args)
               trace  @!trace]
-          (dynamic.trace/with-retval trace retval)))))
+          (with-retval trace retval)))))
 
   #?@(:clj
       [clojure.lang.IFn
@@ -142,6 +448,9 @@
        (-invoke [_ x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 x17 x18 x19 x20 xs]
                 (untraced (apply clojure-fn x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 x17 x18 x19 x20 xs)))]))
 
+(defn ^:no-doc apply-inner [^DynamicDSLFunction gf args]
+  (apply (.-clojure-fn gf) args))
+
 ;; The following two functions use a brittle form of macro-rewriting; we should
 ;; really look at the namespace and local macro environments to try and see if a
 ;; particular symbol is bound to `#'gen.dynamic/{trace!,splice!}`. See
@@ -171,11 +480,11 @@
               (fn [form]
                 (cond (trace-form? form)
                       (let [[addr gf & xs] (rest form)]
-                        `((dynamic.trace/active-trace) ~addr ~gf [~@xs]))
+                        `((active-trace) ~addr ~gf [~@xs]))
 
                       (splice-form? form)
                       (let [[gf & xs] (rest form)]
-                        `((dynamic.trace/active-trace) ~gf [~@xs]))
+                        `((active-trace) ~gf [~@xs]))
 
                       :else form))
               body))
@@ -193,7 +502,7 @@
   "combine by adding weights?"
   [state k {:keys [trace weight]}]
   (-> state
-      (update :trace dynamic.trace/add-call k trace)
+      (update :trace add-call k trace)
       (update :weight + weight)))
 
 ;; TODO figure out visited / unvisited??
@@ -201,48 +510,48 @@
 (extend-type DynamicDSLFunction
   gf/IGenerate
   (-generate [gf args constraints]
-    (let [trace  (dynamic.trace/trace gf args)
+    (let [trace  (trace gf args)
           !state (atom {:trace trace :weight 0.0})]
-      (binding [dynamic.trace/*trace*
+      (binding [*trace*
                 (fn
-                  ([^DynamicDSLFunction gf args]
-                   (apply (.-clojure-fn gf) args))
+                  ([gf args]
+                   (apply-inner gf args))
                   ([k gf args]
-                   (dynamic.trace/validate-empty! (:trace @!state) k)
+                   (validate-empty! (:trace @!state) k)
                    (let [{subtrace :trace :as ret}
-                         (let [k-constraints (choice-map/get-submap constraints k)]
+                         (let [k-constraints (choicemap/get-submap constraints k)]
                            (gf/generate gf args k-constraints))]
                      (swap! !state assoc-state k ret)
                      (trace/get-retval subtrace))))]
-        (let [retval (apply (.-clojure-fn gf) args)
+        (let [retval (apply-inner gf args)
               state  @!state]
-          (update state :trace dynamic.trace/with-retval retval)))))
+          (update state :trace with-retval retval)))))
 
   gf/IAssess
-  (assess [gf args choices]
+  (-assess [gf args choices]
     (let [!weight (atom 0.0)]
-      (binding [dynamic.trace/*trace*
+      (binding [*trace*
                 (fn
-                  ([^DynamicDSLFunction gf args]
-                   (apply (.-clojure-fn gf) args))
+                  ([gf args]
+                   (apply-inner gf args))
                   ([k gf args]
                    (let [{:keys [weight retval]}
-                         (let [k-choices (choice-map/get-submap choices k)]
+                         (let [k-choices (choicemap/get-submap choices k)]
                            (gf/assess gf args k-choices))]
                      (swap! !weight + weight)
                      retval)))]
-        (let [retval (apply (.-clojure-fn gf) args)]
+        (let [retval (apply-inner gf args)]
           {:weight @!weight
            :retval retval}))))
 
   gf/IPropose
   (propose [gf args]
-    (let [!state (atom {:choices (choice-map/choicemap)
+    (let [!state (atom {:choices (choicemap/choicemap)
                         :weight  0.0})]
-      (binding [dynamic.trace/*trace*
+      (binding [*trace*
                 (fn
-                  ([^DynamicDSLFunction gf args]
-                   (apply (.-clojure-fn gf) args))
+                  ([gf args]
+                   (apply-inner gf args))
                   ([k gf args]
                    (let [{:keys [submap weight retval]} (gf/propose gf args)]
                      (swap! !state
@@ -251,5 +560,5 @@
                                   (update :choices assoc k submap)
                                   (update :weight + weight))))
                      retval)))]
-        (let [retval (apply (.-clojure-fn gf) args)]
+        (let [retval (apply-inner gf args)]
           (assoc @!state :retval retval))))))
