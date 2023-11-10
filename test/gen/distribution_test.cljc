@@ -2,12 +2,12 @@
   (:require [com.gfredericks.test.chuck.clojure-test :refer [checking]]
             [clojure.test :refer [is testing]]
             [clojure.test.check.generators :as gen]
+            [gen.choicemap :as choicemap]
             [gen.diff :as diff]
             [gen.distribution :as dist]
-            [gen.dynamic.choicemap :as choicemap]
             [gen.generative-function :as gf]
+            [gen.generators :refer [gen-double within]]
             [gen.trace :as trace]
-            [gen.test-check-util :refer [gen-double within]]
             [same.core :refer [ish? zeroish? with-comparator]]))
 
 (defn gamma-tests [->gamma]
@@ -33,6 +33,19 @@
     (is (= -5.992380837839856 (dist/logpdf (->beta 0.001 1) 0.4)))
     (is (= -6.397440480839912 (dist/logpdf (->beta 1 0.001) 0.4)))))
 
+(defn primitive-gfi-tests [gf args]
+  (let [trace (gf/simulate gf args)]
+    (is (= gf (trace/get-gen-fn trace))
+        "distribution round trips through the trace ")
+
+    (is (= args (trace/get-args trace))
+        "distribution round trips through the trace ")
+
+    (let [choice (trace/get-choices trace)]
+      (is (= (trace/get-retval trace)
+             (choicemap/get-value choice))
+          "primitive distributions return a single choice."))))
+
 (defn bernoulli-tests [->bernoulli]
   (checking "Bernoulli properties"
             [p (gen-double 0 1)
@@ -47,25 +60,22 @@
                 "All options sum to 1")))
 
 (defn bernoulli-gfi-tests [bernoulli-dist]
+  (primitive-gfi-tests bernoulli-dist [0.5])
+
   (testing "bernoulli-call-no-args"
     (is (boolean? (bernoulli-dist))))
 
   (testing "bernoulli-call-args"
     (is (boolean? (bernoulli-dist 0.5))))
 
-  (testing "bernoulli-gf"
-    (is (= bernoulli-dist (trace/get-gen-fn (gf/simulate bernoulli-dist [])))))
-
-  (testing "bernoulli-args"
-    (is (= [0.5] (trace/get-args (gf/simulate bernoulli-dist [0.5])))))
-
   (testing "bernoulli-retval"
     (is (boolean? (trace/get-retval (gf/simulate bernoulli-dist [0.5])))))
 
   (testing "bernoulli-choices-noargs"
     (is (boolean?
-         (choicemap/unwrap
-          (trace/get-choices (gf/simulate bernoulli-dist []))))))
+         (choicemap/get-value
+          (trace/get-choices
+           (gf/simulate bernoulli-dist []))))))
 
   (testing "bernoulli-update-weight"
     (is (= 1.0

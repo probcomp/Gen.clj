@@ -7,16 +7,20 @@
             [gen.distribution.kixi]
             [gen.distribution.math.log-likelihood]
             [gen.dynamic]
-            [gen.dynamic.trace]
             [gen.generative-function]
             [gen.inference.importance]
             [gen.trace]
             [sci.core :as sci]
             [sci.ctx-store]))
 
-(def gen-macro ^:sci/macro
+(def ^:no-doc gen-macro ^:sci/macro
   (fn [_&form _&env & args]
     (apply gen.dynamic/gen-body args)))
+
+(def ^:no-doc untraced-macro ^:sci/macro
+  (fn [_&form _&env & body]
+    `(binding [gen.dynamic/*trace* no-op]
+       ~@body)))
 
 (def namespaces
   {'gen.clerk.callout                    (sci/copy-ns gen.clerk.callout (sci/create-ns 'gen.clerk.callout))
@@ -25,8 +29,9 @@
    'gen.distribution                     (sci/copy-ns gen.distribution (sci/create-ns 'gen.distribution))
    'gen.distribution.kixi                (sci/copy-ns gen.distribution.kixi (sci/create-ns 'gen.distribution.kixi))
    'gen.distribution.math.log-likelihood (sci/copy-ns gen.distribution.math.log-likelihood (sci/create-ns 'gen.distribution.math.log-likelihood))
-   'gen.dynamic                          (-> (sci/copy-ns gen.dynamic (sci/create-ns 'gen.dynamic)) (assoc 'gen gen-macro))
-   'gen.dynamic.trace                    (sci/copy-ns gen.dynamic.trace (sci/create-ns 'gen.dynamic.trace))
+   'gen.dynamic                          (-> (sci/copy-ns gen.dynamic (sci/create-ns 'gen.dynamic))
+                                             (assoc 'gen gen-macro
+                                                    'untraced untraced-macro))
    'gen.generative-function              (sci/copy-ns gen.generative-function (sci/create-ns 'gen.generative-function))
    'gen.inference.importance             (sci/copy-ns gen.inference.importance (sci/create-ns 'gen.inference.importance))
    'gen.trace                            (sci/copy-ns gen.trace (sci/create-ns 'gen.trace))})

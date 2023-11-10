@@ -15,7 +15,6 @@
     (eval
      '(do (require '[gen.distribution.kixi :as dist]
                    '[gen.dynamic :as dynamic :refer [gen]]
-                   '[gen.dynamic.trace :as dt]
                    '[gen.generative-function :as gf]
                    '[gen.trace :as trace])
           (def line-model

@@ -1,4 +1,6 @@
 (ns gen.choicemap
+  "Defines the [[IChoiceMap]] abstraction, its API and a number of out-of-the-box
+  implementations of leaves and nodes of choicemaps."
   (:refer-clojure :exclude [assoc-in merge])
   (:require [clojure.pprint :as pprint]
             [gen.array :as arr])
@@ -7,20 +9,48 @@
 
 ;; ## Choice Maps
 ;;
+;; [[IChoiceMap]] is a tree-like abstraction used by Gen to present the random
+;; choices stored inside an instance of [[gen.trace/ITrace]].
 ;;
-;; You should implement TODO describe what's implemented in each of these types.
-
-;; ;; - ISeqable to get `empty?` working
+;; The two main types of choice maps are
+;;
+;; - [[Choice]] instances, referred to in other Gen languages
+;;   as "ValueChoiceMap"
+;; - Hierarchical choice maps that maintain a mapping from key to [[IChoiceMap]]
+;;   instance.
+;;
+;; The first two functions in the protocol concern [[Choice]] instances, or
+;; leaves of the [[IChoiceMap]] tree. The other four are used by nodes.
 
 (defprotocol IChoiceMap
-  (-has-value? [m])
-  (-get-value [m])
-  (has-submap? [m k])
-  (get-submap [m k] "NOTE that this returns a submap, not a value.")
-  (get-values-shallow [m] "Return just values")
-  (get-submaps-shallow [m] "Returns just submaps"))
+  (-has-value? [m]
+    "Returns true if `m` is a leaf, false otherwise.")
 
-(defn choicemap? [x]
+  (-get-value [m]
+    "Returns the stored value if `m` is a leaf, nil otherwise. ")
+
+  (has-submap? [m k]
+    "Returns true if `m` is storing a mapping from `k` to another [[IChoiceMap]]
+    instance, false otherwise.")
+
+  (get-submap [m k]
+    "Returns true if `m` is storing a mapping from `k` to another [[IChoiceMap]]
+    instance, false otherwise.
+
+    NOTE: [[get-submap]] always returns an [[IChoiceMap]], even
+    if [[has-submap?]] returns false for `k`.")
+
+  (get-values-shallow [m]
+    "Returns a map of address => leaf [[IChoiceMap]] instances (i.e. instances
+    that return true for [[has-value?]]).")
+
+  (get-submaps-shallow [m]
+    "Returns a map of address => all stored [[IChoiceMap]] instances, both
+    leaves and nodes."))
+
+(defn choicemap?
+  "Returns true if `x` implements [[IChoiceMap]], false otherwise."
+  [x]
   (satisfies? IChoiceMap x))
 
 (defn has-value?
