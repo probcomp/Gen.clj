@@ -10,3 +10,5 @@ return get_choice? isn't that the actual important idea?
 
 - [ ] put the map-vs-Call distinction back into the dynamic trace, so I can have
       nested addresses.
+
+- [ ] ask george about projection, addresses... how we should handle project on a valuechoicemap?

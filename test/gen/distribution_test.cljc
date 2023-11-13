@@ -5,6 +5,7 @@
             [gen.choicemap :as choicemap]
             [gen.diff :as diff]
             [gen.distribution :as dist]
+            [gen.dynamic :as dynamic :refer [gen]]
             [gen.generative-function :as gf]
             [gen.generators :refer [gen-double within]]
             [gen.trace :as trace]
@@ -62,6 +63,14 @@
 (defn bernoulli-gfi-tests [bernoulli-dist]
   (primitive-gfi-tests bernoulli-dist [0.5])
 
+  (checking "bernoulli dist has proper logpdf" [p (gen-double 0 1)]
+            (let [trace (gf/simulate bernoulli-dist [p])]
+              (is (ish? (if (trace/get-retval trace)
+                          p
+                          (- 1 p))
+                        (Math/exp
+                         (trace/get-score trace))))))
+
   (testing "bernoulli-call-no-args"
     (is (boolean? (bernoulli-dist))))
 
@@ -93,29 +102,29 @@
                (Math/exp)))))
 
   (testing "bernoulli-update-discard"
-    (is (nil?
-         (-> (gf/generate bernoulli-dist [0.3] #gen/choice true)
-             (:trace)
-             (trace/update nil)
-             (:discard))))
+    (is (= #gen/choice true
+           (-> (gf/generate bernoulli-dist [0.3] true)
+               (:trace)
+               (trace/update nil)
+               (:discard))))
 
     (is (= #gen/choice true
-           (-> (gf/generate bernoulli-dist [0.3] #gen/choice true)
+           (-> (gf/generate bernoulli-dist [0.3] true)
                (:trace)
-               (trace/update #gen/choice false)
+               (trace/update false)
                (:discard)))))
 
   (testing "bernoulli-update-change"
     (is (= diff/unknown-change
-           (-> (gf/generate bernoulli-dist [0.3] #gen/choice true)
+           (-> (gf/generate bernoulli-dist [0.3] true)
                (:trace)
                (trace/update nil)
                (:change))))
 
     (is (= diff/unknown-change
-           (-> (gf/generate bernoulli-dist [0.3] #gen/choice true)
+           (-> (gf/generate bernoulli-dist [0.3] true)
                (:trace)
-               (trace/update #gen/choice false)
+               (trace/update false)
                (:change))))))
 
 (defn cauchy-tests [->cauchy]

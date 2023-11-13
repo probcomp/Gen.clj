@@ -81,7 +81,7 @@
     (-> (gf/generate gen-fn args constraint)
         (update :weight - score)
         (assoc :change  diff/unknown-change
-               :discard val))))
+               :discard (choicemap/->Choice val)))))
 
 #?(:clj
    (defmethod print-method Trace

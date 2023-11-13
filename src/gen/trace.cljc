@@ -1,7 +1,8 @@
 (ns gen.trace
   "Protocols that constitute the trace interface."
   (:refer-clojure :exclude [update])
-  (:require [gen.diff :as diff]))
+  (:require [gen.choicemap :as choicemap]
+            [gen.diff :as diff]))
 
 ;; https://github.com/probcomp/Gen.jl/blob/master/src/gen_fn_interface.jl#L1
 
@@ -74,11 +75,13 @@ back this out."))
   The 2-arity version is a shorthand variant which assumes the arguments are
   unchanged."
   ([trace constraints]
-   (let [args  (get-args trace)
-         diffs (repeat (count args) diff/no-change)]
+   (let [args        (get-args trace)
+         diffs       (repeat (count args) diff/no-change)
+         constraints (choicemap/choicemap constraints)]
      (-update trace args diffs constraints)))
   ([trace args argdiffs constraints]
-   (-update trace args argdiffs constraints)))
+   (let [constraints (choicemap/choicemap constraints)]
+     (-update trace args argdiffs constraints))))
 
 (defn trace->map [t]
   (-> {:gen-fn  (get-gen-fn t)

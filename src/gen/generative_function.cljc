@@ -60,7 +60,8 @@
       :weight 0.0}))
   ([gf args constraints]
    (let [constraints (choicemap/choicemap constraints)]
-     (if (empty? constraints)
+     (if (and (not (choicemap/has-value? constraints))
+              (empty? constraints))
        (generate gf args)
        (-generate gf args constraints)))))
 

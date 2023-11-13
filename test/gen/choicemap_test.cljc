@@ -53,6 +53,13 @@
   [m]
   (common-tests m)
 
+  (let [submaps (choicemap/get-submaps-shallow m)]
+    (if (seq submaps)
+      (is (seq m)
+          "non-empty submaps == non-empty m")
+      (is (empty? m)
+          "empty submaps == empty? m ")))
+
   (is (false? (choicemap/has-value? m))
       "leaves should never return submaps.")
 
@@ -70,14 +77,28 @@
             (leaf-tests choice)))
 
 (deftest empty-choicemap-tests
-  (node-tests choicemap/EMPTY))
+  (node-tests choicemap/EMPTY)
+  (is (= choicemap/EMPTY (choicemap/choicemap))
+      "no-arity constructor returns empty choicemap."))
 
 (deftest dynamic-choicemap-tests
   (checking "interface for maps" 100
             [m (generators/gen-dynamic-choicemap)]
-            (node-tests m)))
+            (node-tests m))
+
+  (checking "Interface tests for choice maps"
+            [m (generators/gen-dynamic-choicemap)]
+            (is (= m (choicemap/choicemap
+                      (zipmap (keys m) (vals m))))
+                "keys and vals work correctly")))
 
 (deftest vector-choicemap-tests
   (checking "interface for vectors" 100
-            [m (generators/gen-vector-choicemap)]
-            (node-tests m)))
+            [v (generators/gen-vector-choicemap)]
+            (node-tests v))
+
+  (checking "interface for vectors" 100
+            [v (generators/gen-vector-choicemap)]
+            (is (= v (choicemap/choicemap
+                      (into [] (seq v))))
+                "vector choicemap round-trips")))
