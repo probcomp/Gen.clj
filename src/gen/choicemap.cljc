@@ -1,8 +1,9 @@
 (ns gen.choicemap
   "Defines the [[IChoiceMap]] abstraction, its API and a number of out-of-the-box
   implementations of leaves and nodes of choicemaps."
-  (:refer-clojure :exclude [assoc-in merge])
-  (:require [clojure.pprint :as pprint]
+  (:refer-clojure :exclude [assoc-in merge empty?])
+  (:require [clojure.core :as core]
+            [clojure.pprint :as pprint]
             [gen.array :as arr])
   #?(:clj
      (:import (clojure.lang Associative IFn IObj IPersistentMap))))
@@ -605,15 +606,19 @@
         (assoc cm k (assoc-in sub-m ks v))))
     (assoc cm k v)))
 
+(defn empty? [v]
+  (and (not (has-value? v))
+       (core/empty? v)))
+
 (defn merge
   ([] EMPTY)
   ([m] m)
   ([l r]
-   (cond (empty? l) r
-         (empty? r) l
-
-         (or (has-value? l) (has-value? r))
+   (cond (or (has-value? l) (has-value? r))
          (throw (ex-info "Can't merge values." {}))
+
+         (core/empty? l) r
+         (core/empty? r) l
 
          :else
          (->DynamicChoiceMap

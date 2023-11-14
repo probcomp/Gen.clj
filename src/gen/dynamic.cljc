@@ -258,7 +258,7 @@
   [v k {:keys [trace weight discard]}]
   {:trace   (add-call (:trace v) k trace)
    :weight  (+ (:weight v) weight)
-   :discard (if (empty? discard)
+   :discard (if (choicemap/empty? discard)
               (:discard v)
               (assoc (:discard v) k discard))})
 
@@ -307,9 +307,13 @@
               (apply-inner gf args))
              ([k gen-fn args]
               (validate-empty! (:trace @state) k)
+
               (let [k-constraints (choicemap/get-submap constraints k)
                     new-state
-                    (if-let [prev-subtrace (get (.-trie this) k)]
+                    ;; TODO this is a spot where we'll need to check the
+                    ;; previous value.
+                    (if-let [prev-subtrace (:subtrace
+                                            (get (.-trie this) k))]
                       (do
                         (assert
                          (= gen-fn (trace/get-gen-fn prev-subtrace))
@@ -318,7 +322,7 @@
                       (gf/generate gen-fn args k-constraints))]
                 (swap! state combine k new-state)
                 (trace/get-retval
-                 (:subtrace new-state)))))]
+                 (:trace new-state)))))]
         (let [retval                         (apply-inner gen-fn args)
               {:keys [trace weight discard]} @state
               [to-subtract unvisited]        (extract-unvisited this trace)]
@@ -326,7 +330,7 @@
           {:trace   (with-retval trace retval)
            :change  diff/unknown-change
            :weight  (- weight to-subtract)
-           :discard (reduce conj discard unvisited)})))))
+           :discard (choicemap/merge discard unvisited)})))))
 
 ;; so we are going to remove the score of the unvisited stuff as we go up. Does
 ;; that work?

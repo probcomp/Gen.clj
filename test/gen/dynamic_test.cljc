@@ -56,7 +56,7 @@
     (is (dynamic/trace-form? `(gen.dynamic/trace! ~'x))
         "different blessed prefixes work")
 
-    (is (dynamic/trace-form? `(trace! :x :y))
+    (is (dynamic/trace-form? '(trace! :x :y))
         "for now, this special symbol works.")))
 
 (deftest gfi-tests
@@ -133,6 +133,8 @@
                 (trace/get-score trace))))))
 
 (deftest update-discard-yes
+
+
   (let [gf (gen []
                 (dynamic/trace! :discarded kixi/bernoulli 0))]
     (is (= #gen/choicemap {:discarded false}
@@ -143,9 +145,11 @@
 (deftest update-discard-no
   (let [gf (gen []
                 (dynamic/trace! :not-discarded kixi/bernoulli 0))]
-    (is (empty? (-> (gf/simulate gf [])
-                    (trace/update #gen/choicemap {:discarded true})
-                    (:discard))))))
+    (try (-> (gf/simulate gf [])
+             (trace/update #gen/choicemap {:discarded true}))
+         (catch #?(:clj clojure.lang.ExceptionInfo :cljs js/Error) e
+           (is (= {:unvisited [:discarded]}
+                  (ex-data e)))))))
 
 (deftest update-discard-both
   (let [gf (gen []

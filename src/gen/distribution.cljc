@@ -78,10 +78,16 @@
 
   trace/IUpdate
   (-update [_ _ _ constraint]
-    (-> (gf/generate gen-fn args constraint)
-        (update :weight - score)
-        (assoc :change  diff/unknown-change
-               :discard (choicemap/->Choice val)))))
+    (let [current (choicemap/->Choice val)]
+      (if (choicemap/has-value? constraint)
+        (-> (gf/generate gen-fn args constraint)
+            (update :weight - score)
+            (assoc :change  diff/unknown-change
+                   :discard current))
+        (-> (gf/generate gen-fn args current)
+            (update :weight - score)
+            (assoc :change  diff/no-change
+                   :discard choicemap/EMPTY))))))
 
 #?(:clj
    (defmethod print-method Trace

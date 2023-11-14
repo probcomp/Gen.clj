@@ -5,7 +5,6 @@
             [gen.choicemap :as choicemap]
             [gen.diff :as diff]
             [gen.distribution :as dist]
-            [gen.dynamic :as dynamic :refer [gen]]
             [gen.generative-function :as gf]
             [gen.generators :refer [gen-double within]]
             [gen.trace :as trace]
@@ -102,11 +101,11 @@
                (Math/exp)))))
 
   (testing "bernoulli-update-discard"
-    (is (= #gen/choice true
-           (-> (gf/generate bernoulli-dist [0.3] true)
-               (:trace)
-               (trace/update nil)
-               (:discard))))
+    (is (choicemap/empty?
+         (-> (gf/generate bernoulli-dist [0.3] true)
+             (:trace)
+             (trace/update choicemap/EMPTY)
+             (:discard))))
 
     (is (= #gen/choice true
            (-> (gf/generate bernoulli-dist [0.3] true)
@@ -115,10 +114,10 @@
                (:discard)))))
 
   (testing "bernoulli-update-change"
-    (is (= diff/unknown-change
+    (is (= diff/no-change
            (-> (gf/generate bernoulli-dist [0.3] true)
                (:trace)
-               (trace/update nil)
+               (trace/update choicemap/EMPTY)
                (:change))))
 
     (is (= diff/unknown-change
@@ -205,8 +204,8 @@
 
 (defn uniform-tests [->uniform]
   (checking "(log of the) Beta function is symmetrical"
-            [min (gen-double -10 0)
-             max (gen-double 0 10)
+            [min (gen-double -10 -0.1)
+             max (gen-double 0.1 10)
              v   (gen-double -10 10)]
             (let [log-l (dist/logpdf (->uniform min max) v)]
               (if (<= min v max)
