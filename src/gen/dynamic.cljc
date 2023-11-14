@@ -23,30 +23,27 @@
      ~@body))
 
 (defrecord DynamicDSLFunction [clojure-fn]
-  gf/Simulate
+  gf/IGenerativeFunction
   (simulate [gf args]
     (let [trace (atom (dynamic.trace/trace gf args))]
       (binding [dynamic.trace/*splice*
                 (fn [gf args]
                   (let [subtrace (gf/simulate gf args)]
                     (swap! trace dynamic.trace/merge-subtraces subtrace)
-                    (trace/retval subtrace)))
+                    (trace/get-retval subtrace)))
 
                 dynamic.trace/*trace*
                 (fn [k gf args]
                   (dynamic.trace/validate-empty! @trace k)
                   (let [subtrace (gf/simulate gf args)]
                     (swap! trace dynamic.trace/assoc-subtrace k subtrace)
-                    (trace/retval subtrace)))]
+                    (trace/get-retval subtrace)))]
         (let [retval (apply clojure-fn args)]
           (swap! trace dynamic.trace/with-retval retval)
           @trace))))
 
-  gf/Generate
-  (generate [gf args]
-    (let [trace (gf/simulate gf args)]
-      {:trace trace :weight (Math/log 1)}))
-  (generate [gf args constraints]
+  gf/IGenerate
+  (-generate [gf args constraints]
     (let [state (atom {:trace (dynamic.trace/trace gf args)
                        :weight 0})]
       (binding [dynamic.trace/*splice*
@@ -56,7 +53,7 @@
                         (gf/generate gf args constraints)]
                     (swap! state update :trace dynamic.trace/merge-subtraces subtrace)
                     (swap! state update :weight + weight)
-                    (trace/retval subtrace)))
+                    (trace/get-retval subtrace)))
 
                 dynamic.trace/*trace*
                 (fn [k gf args]
@@ -66,7 +63,7 @@
                           (gf/generate gf args k-constraints)
                           (gf/generate gf args))]
                     (swap! state dynamic.trace/combine k ret)
-                    (trace/retval subtrace)))]
+                    (trace/get-retval subtrace)))]
         (let [retval (apply clojure-fn args)
               trace (:trace @state)]
           {:trace (dynamic.trace/with-retval trace retval)

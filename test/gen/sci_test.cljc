@@ -50,5 +50,5 @@
           (def xs (range -5 6))
           (def y (line-model xs))
           (def trace (gf/simulate line-model [xs]))
-          [(trace/args trace)
-           (trace/choices trace)]))))
+          [(trace/get-args trace)
+           (trace/get-choices trace)]))))

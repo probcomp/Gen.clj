@@ -4,7 +4,7 @@
             [gen.distribution.math.log-likelihood :as ll]
             [gen.distribution :as distribution]
             [gen.distribution-test :as dt]
-            [gen.test-check-util :refer [gen-double within]]
+            [gen.generators :refer [gen-double within]]
             [same.core :refer [ish? with-comparator]]))
 
 (defn factorial
