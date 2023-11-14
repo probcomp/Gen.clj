@@ -925,10 +925,10 @@ math/PI
 
 (def bar-with-key
   (gen []
-       (dynamic/trace! :x dist/bernoulli 0.5)
-       ;; Call `foo` with the address `:z`.  The internal choice `:y` of `foo` will
-       ;; appear in our trace at the hierarchical address `[:z :y]`.
-       (dynamic/trace! :z foo)))
+    (dynamic/trace! :x dist/bernoulli 0.5)
+    ;; Call `foo` with the address `:z`.  The internal choice `:y` of `foo` will
+    ;; appear in our trace at the hierarchical address `[:z :y]`.
+    (dynamic/trace! :z foo)))
 
 ;; We first show the addresses sampled by `bar`:
 

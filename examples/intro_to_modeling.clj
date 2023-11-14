@@ -881,19 +881,19 @@ math/PI
 (comment
   (def sine-model-fancy
     (gen [xs]
-         (let [period (dynamic/trace! :period dist/gamma 5 1)
-               amplitude (dynamic/trace! :amplitude dist/gamma 1 1)
-               phase (dynamic/trace! :phase dist/uniform 0 (* 2 math/PI))
-               noise (dynamic/trace! :noise dist/gamma 1 1)
-               y (fn [x]
-                   (* amplitude
-                      (math/sin (+ (* x
-                                      (/ (* 2 math/PI)
-                                         period))
-                                   phase))))]
-           (doseq [[i x] (map-indexed vector xs)]
-             (dynamic/trace! [:y i] dist/normal (y x) noise)))
-         y)))
+      (let [period (dynamic/trace! :period dist/gamma 5 1)
+            amplitude (dynamic/trace! :amplitude dist/gamma 1 1)
+            phase (dynamic/trace! :phase dist/uniform 0 (* 2 math/PI))
+            noise (dynamic/trace! :noise dist/gamma 1 1)
+            y (fn [x]
+                (* amplitude
+                   (math/sin (+ (* x
+                                   (/ (* 2 math/PI)
+                                      period))
+                                phase))))]
+        (doseq [[i x] (map-indexed vector xs)]
+          (dynamic/trace! [:y i] dist/normal (y x) noise)))
+      y)))
 
 ;; ## 5. Calling other generative functions
 
@@ -923,19 +923,19 @@ math/PI
 
 (def foo
   (gen []
-       (dynamic/trace! :y dist/normal 0 1)))
+    (dynamic/trace! :y dist/normal 0 1)))
 
 (gen []
-     (let [x   (dynamic/trace! :x dist/normal 0 1)
-           x_y (dynamic/trace! :x foo)]
-       (+ x x_y)))
+  (let [x   (dynamic/trace! :x dist/normal 0 1)
+        x_y (dynamic/trace! :x foo)]
+    (+ x x_y)))
 
 (def bar
   (gen []
-       (dynamic/trace! :x dist/bernoulli 0.5)
-       ;; Call `foo` with `dynamic/splice!`. Its choices (`:y`) will appear directly
-       ;; within the trace of `bar`.
-       (dynamic/splice! foo)))
+    (dynamic/trace! :x dist/bernoulli 0.5)
+    ;; Call `foo` with `dynamic/splice!`. Its choices (`:y`) will appear directly
+    ;; within the trace of `bar`.
+    (dynamic/splice! foo)))
 
 (def bar-with-key
   (gen []
