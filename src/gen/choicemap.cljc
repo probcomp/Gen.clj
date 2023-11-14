@@ -56,14 +56,33 @@
   (satisfies? IChoiceMap x))
 
 (defn has-value?
+  "If no `k` is provided, returns true if `m` is a non-hierarchical [[IChoiceMap]]
+  implementer, and contains a concrete value, false otherwise.
+
+  If a `k` is provided, returns true if `m` is a hierarchical [[IChoiceMap]]
+  with a non-hierarchical, value-containing submap at address `k`."
   ([m] (-has-value? m))
   ([m k] (-has-value? (get-submap m k))))
 
 (defn get-value
+  "If no `k` is provided, if `m` returns true for `has-value?`, returns the value
+  stored in `m`, nil otherwise.
+
+  If a `k` is provided, returns the value stored at the [[IChoiceMap]] instance
+  at address `k` in `m`, or `nil` if that address is empty or contains a
+  hierarchical [[IChoiceMap]]."
   ([m] (-get-value m))
   ([m k] (-get-value (get-submap m k))))
 
-;; ## Value
+;; ## Choice
+;;
+;; This first type is a non-hierarchical [[IChoiceMap]] instance, essentially a
+;; wrapper for leaf nodes in a structured choice map. Many [[IChoiceMap]]
+;; implementations will make use of this same leaf type.
+;;
+;; Rather than extending this implementation to `object`, we require an
+;; explicit [[Choice]] wrapper for parity with Gen.jl's implementation, and to
+;; make the [[IChoiceMap]] interface opt-in.
 
 (declare EMPTY)
 
@@ -103,6 +122,12 @@
                (and (instance? Choice o)
                     (= v (.-v ^Choice o))))]))
 
+#?(:cljs
+   (extend-type default
+     IPrintWithWriter
+     (-pr-writer [n writer _]
+       (-write writer n))))
+
 #?(:clj
    (defmethod print-method Choice
      [^Choice choice ^java.io.Writer w]
@@ -115,6 +140,10 @@
   (pprint/simple-dispatch (.-v c)))
 
 ;; ## Empty
+;;
+;; The first hierarchical choice map implementation is the [[EmptyChoiceMap]].
+;; Other implementations should return this from [[get-submap]] (instead of
+;; `nil`) in the case of queries for a missing address.
 
 (declare kv->choicemap)
 
@@ -155,8 +184,9 @@
        (cons [this o]
              (if (map? o)
                (reduce-kv assoc this o)
-               (let [[k v] o]
-                 (kv->choicemap k v))))
+               (if-let [[k v] o]
+                 (kv->choicemap k v)
+                 this)))
        (count [_] 0)
        (seq [_] nil)
        (empty [_] (EmptyChoiceMap. nil))
@@ -203,6 +233,14 @@
        (-assoc [_ k v] (kv->choicemap k v))
        (-contains-key? [_ _] false)
 
+       ICollection
+       (-conj [this entry]
+              (if (map? entry)
+                (reduce-kv assoc this entry)
+                (if-let [[k v] entry]
+                  (kv->choicemap k v)
+                  this)))
+
        IMap
        (-dissoc [this _] this)]))
 
@@ -216,12 +254,14 @@
      :cljs (-write *out* "#gen/choicemap {}")))
 
 (def EMPTY
-  "Empty choicemap singleton."
+  "Empty choicemap singleton instance."
   (->EmptyChoiceMap nil))
 
 ;; ## Map-shaped Choice Map
 
-;; The map here has the invariant that values are always other choicemaps.
+;; The [[DynamicChoiceMap]] implementation is for hierarchical,
+;; non-value-containing [[IChoiceMap]]s. This type maintains the invariant that
+;; the values of `m` are always other [[IChoiceMap]]s.
 
 (declare equiv choicemap)
 
@@ -316,8 +356,8 @@
                    (-pr-writer m writer opts))
 
        IFn
-       (-invoke [_ k] (-invoke m k))
-       (-invoke [_ k not-found] (-invoke m k not-found))
+       (-invoke [_ k] (-lookup m k))
+       (-invoke [_ k not-found] (-lookup m k not-found))
 
        IMeta
        (-meta [_] (-meta m))
@@ -349,6 +389,14 @@
                 (assoc m k (choicemap v))))
        (-contains-key? [_ k] (-contains-key? m k))
 
+       ICollection
+       (-conj [this entry]
+              (if (map? entry)
+                (reduce-kv assoc this entry)
+                (if-let [[k v] entry]
+                  (assoc this k v)
+                  this)))
+
        IMap
        (-dissoc [_ k]
                 (DynamicChoiceMap.
@@ -366,7 +414,16 @@
      :cljs (-write *out* "#gen/choicemap "))
   (pprint/simple-dispatch (.-m m)))
 
-;; ## Vector
+;; ## Vector-shaped Choice Maps
+;;
+;; [[VectorChoiceMap]] tries to be similar to [[DynamicChoiceMap]], but more
+;; efficient for sequential, numerical addresses (like the indices of a vector).
+;;
+;; This type will attempt to stay a vector, but will convert to
+;; a [[DynamicChoiceMap]] if you do something like `assoc` an address outside of
+;; its range.
+
+(declare v:assoc)
 
 (deftype VectorChoiceMap [v]
   IChoiceMap
@@ -427,14 +484,7 @@
 
        IPersistentMap
        (assocEx [_ _ _] (throw (Exception.)))
-       (assoc [this k val]
-              (if (and (number? k)
-                       (<= 0 k (count v)))
-                (VectorChoiceMap.
-                 (assoc v k (choicemap val)))
-                (-> (get-submaps-shallow this)
-                    (assoc k (choicemap val))
-                    (DynamicChoiceMap.))))
+       (assoc [this k val] (v:assoc this k val))
 
        (without [this k]
                 (if (contains? v k)
@@ -468,8 +518,8 @@
                    (-pr-writer v writer opts))
 
        IFn
-       (-invoke [_ k] (-invoke v k))
-       (-invoke [_ k not-found] (-invoke v k not-found))
+       (-invoke [_ k] (-lookup v k))
+       (-invoke [_ k not-found] (-lookup v k not-found))
 
        IMeta
        (-meta [_] (-meta v))
@@ -496,15 +546,13 @@
        (-lookup [_ k not-found] (-lookup v k not-found))
 
        IAssociative
-       (-assoc [this k v]
-               (if (<= 0 k (count v))
-                 (VectorChoiceMap.
-                  (assoc v k (choicemap val)))
-                 (-> (get-submaps-shallow this)
-                     (assoc k (choicemap val))
-                     (DynamicChoiceMap.))))
-
+       (-assoc [this k val] (v:assoc this k val))
        (-contains-key? [_ k] (-contains-key? v k))
+
+       ICollection
+       (-conj [_ val]
+              (VectorChoiceMap.
+               (conj v (choicemap val))))
 
        IMap
        (-dissoc [this k]
@@ -513,6 +561,16 @@
                       (dissoc k)
                       (DynamicChoiceMap.))
                   this))]))
+
+(defn- v:assoc [^VectorChoiceMap this k val]
+  (let [v (.-v this)]
+    (if (and (number? k)
+             (<= 0 k (count v)))
+      (VectorChoiceMap.
+       (assoc v k (choicemap val)))
+      (-> (get-submaps-shallow this)
+          (assoc k (choicemap val))
+          (DynamicChoiceMap.)))))
 
 #?(:clj
    (defmethod print-method VectorChoiceMap
@@ -525,6 +583,14 @@
      [^VectorChoiceMap m]
      (.write ^java.io.Writer *out* "#gen/choicemap ")
      (pprint/simple-dispatch (.-v m))))
+
+;; ## Reader Literals
+;;
+;; These next methods aren't exposed in the public API, but support reader
+;; literals like `#gen/choice 10` or `#gen/choicemap [1 2 3]`.
+;;
+;; The former exists to make it possible to create explicit map-or-vector-shaped
+;; leaves, instead of having them auto-converted into choicemap wrapper.
 
 (declare choicemap)
 
@@ -545,16 +611,12 @@
   `(choicemap ~form))
 
 ;; ## API
-
-(defn ^:no-doc equiv
-  "Assumes that `l` is a [[ChoiceMap]]."
-  [l r]
-  (and (choicemap? r)
-       (= (get-submaps-shallow l)
-          (get-submaps-shallow r))))
+;;
+;; ### Constructors
 
 (defn ^:no-doc kv->choicemap
-  "Generates a choicemap from the supplied kv pair."
+  "Generates a [[DynamicChoiceMap]] from the supplied (`k`, `v`) pair. Used
+  internally in cases where we have a single entry."
   [k v]
   (->DynamicChoiceMap {k (choicemap v)}))
 
@@ -584,11 +646,25 @@
          (map? x)        (map->choicemap x)
          :else           (->Choice x))))
 
+;; ### ChoiceMap interactions
+
+(defn ^:no-doc equiv
+  "Returns true if `r` is a choicemap with equivalent submaps to `l`, false
+  otherwise.
+
+  NOTE: [[equiv]] assumes that `l` is a [[ChoiceMap]]."
+  [l r]
+  (and (choicemap? r)
+       (= (get-submaps-shallow l)
+          (get-submaps-shallow r))))
+
 (defn ->map
-  "Returns a map with all entries in the choicemap.
+  "Given an [[IChoiceMap]] instance `cm`, returns a map generated by recursively calling [[get-submaps-shallow]] on all hierarchical entries and [[get-value]] on all value-containing entries.
 
   NOTE that this will lose the distinctions between a submap and a value of type
-  `map`."
+  `map`, if you happen to have map-shaped choices.
+
+  Given any other type, acts as `identity`."
   [cm]
   (if (choicemap? cm)
     (if (has-value? cm)
@@ -600,22 +676,43 @@
 ;; ## Methods
 
 (defn assoc-in
-  "TODO note that this will be careful re:assignment! assoc-in will work but this will error."
+  "Given an [[IChoiceMap]] instance `cm`, a sequence of addresses and a value `v`,
+  attempts to generate a new [[IChoiceMap]] by recursively calling `assoc` on
+  each submap.
+
+  NOTE that unlike `clojure.core/assoc-in`, [[assoc-in]] will error if you try
+  and pass a sequence of addresses that clashes with an existing value.
+  Prefer [[assoc-in]] when you want this strict erroring behavior."
   [cm [k & ks] v]
   (if ks
     (let [sub-m (get cm k EMPTY)]
       (if (has-value? sub-m)
         (throw
-         (ex-info "Already a value at `k`, tried to assign nested"
-                  {:k k :v sub-m}))
+         (ex-info
+          "A value already exists at `k`, tried to assign a nested `path`."
+          {:k k :v sub-m :path ks}))
         (assoc cm k (assoc-in sub-m ks v))))
     (assoc cm k v)))
 
-(defn empty? [v]
-  (and (not (has-value? v))
-       (core/empty? v)))
+(defn empty?
+  "Returns true if `v` is a hierarchical [[IChoiceMap]] with no entries, false
+  otherwise.
+
+  For non-choicemap `v`s, returns `(clojure.core/empty? v)`."
+  [v]
+  (if (choicemap? v)
+    (and (not (has-value? v))
+         (core/empty? v))
+    (core/empty? v)))
 
 (defn merge
+  "Given two or more [[IChoiceMap]] instances, returns a new [[DynamicChoiceMap]]
+  instance generated by merging in the return values of [[get-submaps-shallow]]
+  called on [[IChoiceMap]] instances `l` and `r`.
+
+  Given a single argument `m`, acts as identity.
+
+  Given no arguments, returns [[EMPTY]]."
   ([] EMPTY)
   ([m] m)
   ([l r]

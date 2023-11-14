@@ -4,15 +4,9 @@
   (:require [clojure.test :refer [deftest is testing]]
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]]
-            [gen.array :as arr]
+            [gen.array-test :as array-test]
             [gen.choicemap :as choicemap]
             [gen.generators :as generators]))
-
-(defn array-round-trip [m]
-  (is (= m
-         (->> (arr/to-array m)
-              (arr/from-array m)))
-      "entry round-trips through array."))
 
 (defn common-tests [m]
   (is (choicemap/choicemap? m)
@@ -91,7 +85,11 @@
 
   (checking "leaves round-trip through array" 100
             [choice (generators/gen-choice)]
-            (array-round-trip choice))
+            (array-test/array-round-trip choice))
+
+  (checking "leaves are never empty" 100
+            [choice (generators/gen-choice)]
+            (is (not (choicemap/empty? choice))))
 
   (checking "string rep" 100
             [choice (generators/gen-choice)]
@@ -102,7 +100,7 @@
 
 (deftest empty-choicemap-tests
   (node-tests choicemap/EMPTY)
-  (array-round-trip choicemap/EMPTY)
+  (array-test/array-round-trip choicemap/EMPTY)
 
   (is (= "#gen/choicemap {}" (str choicemap/EMPTY))
       "string rep test")
@@ -118,7 +116,8 @@
   (checking "not equal to anything else" 100
             [v gen/any-equatable]
             (is (not= choicemap/EMPTY v))
-            (is (not (.equals choicemap/EMPTY v))))
+            #?(:clj
+               (is (not (.equals choicemap/EMPTY v)))))
 
   (checking "no entries" 100 [k gen/keyword]
             (is (= choicemap/EMPTY
@@ -163,7 +162,7 @@
 
   (checking "dcm round-trips through array" 100
             [m (generators/gen-dynamic-choicemap)]
-            (array-round-trip m))
+            (array-test/array-round-trip m))
 
   (checking "metadata support" 100
             [cm (generators/gen-dynamic-choicemap)
@@ -244,7 +243,7 @@
 
   (checking "vcm round-trips through array" 100
             [v (generators/gen-vector-choicemap)]
-            (array-round-trip v))
+            (array-test/array-round-trip v))
 
   (checking "metadata support" 100
             [v (generators/gen-vector-choicemap)
@@ -306,6 +305,34 @@
   (checking "->map is identity on non-choicemaps" 100
             [v gen/any-equatable]
             (is (= v (choicemap/->map v))))
+
+  (testing "assoc-in"
+    (checking "assoc matches assoc-in for single k"
+              100
+              [k gen/keyword
+               v gen/any-equatable]
+              (is (= (assoc-in choicemap/EMPTY [k] v)
+                     (assoc choicemap/EMPTY k v))))
+
+    (is (= (choicemap/choicemap {:k1 {:inner 10}
+                                 :k2 2})
+           (choicemap/assoc-in
+            (choicemap/choicemap {:k2 2})
+            [:k1 :inner]
+            10))
+        "assoc-in works great on nested values")
+
+    (is (thrown?
+         #?(:clj clojure.lang.ExceptionInfo :cljs js/Error)
+         (choicemap/assoc-in
+          (choicemap/choicemap {:k1 1 :k2 2})
+          [:k1 :inner]
+          10))
+        "assoc-in won't traverse past a value"))
+
+  (testing "empty?"
+    (is (choicemap/empty? []))
+    (is (choicemap/empty? {})))
 
   (testing "merge"
     (is (= choicemap/EMPTY (choicemap/merge))
