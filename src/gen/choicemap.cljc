@@ -8,20 +8,21 @@
   #?(:clj
      (:import (clojure.lang Associative IFn IObj IPersistentMap))))
 
-;; ## Choice Maps
+;; ## Choice Map
 ;;
 ;; [[IChoiceMap]] is a tree-like abstraction used by Gen to present the random
 ;; choices stored inside an instance of [[gen.trace/ITrace]].
 ;;
 ;; The two main types of choice maps are
 ;;
-;; - [[Choice]] instances, referred to in other Gen languages
+;; - [[Choice]] instances, referred to in other Gen implementations
 ;;   as "ValueChoiceMap"
 ;; - Hierarchical choice maps that maintain a mapping from key to [[IChoiceMap]]
 ;;   instance.
 ;;
 ;; The first two functions in the protocol concern [[Choice]] instances, or
-;; leaves of the [[IChoiceMap]] tree. The other four are used by nodes.
+;; leaves of the [[IChoiceMap]] tree. The other four are used by nodes, i.e.,
+;; hierarchical choice maps.
 
 (defprotocol IChoiceMap
   (-has-value? [m]
@@ -144,7 +145,7 @@
        (withMeta [_ meta-m] (EmptyChoiceMap. meta-m))
 
        IPersistentMap
-       (assocEx [_ k v] (kv->choicemap k v))
+       (assocEx [_ _ _] (throw (Exception.)))
        (assoc [_ k v] (kv->choicemap k v))
        (without [this _] this)
 
@@ -413,7 +414,10 @@
 
        IFn
        (invoke [_ k] (v k))
-       (invoke [_ k not-found] (v k not-found))
+       (invoke [_ k not-found]
+               (if (contains? v k)
+                 (v k)
+                 not-found))
 
        IObj
        (meta [_] (meta v))
@@ -424,7 +428,8 @@
        IPersistentMap
        (assocEx [_ _ _] (throw (Exception.)))
        (assoc [this k val]
-              (if (<= 0 k (count v))
+              (if (and (number? k)
+                       (<= 0 k (count v)))
                 (VectorChoiceMap.
                  (assoc v k (choicemap val)))
                 (-> (get-submaps-shallow this)
