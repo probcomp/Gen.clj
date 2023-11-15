@@ -160,12 +160,11 @@
   \\end{aligned}
   $$"
   [mu sigma v]
-  (let [v-mu     (- v mu)
-        v-mu-sq  (* v-mu v-mu)
-        variance (* sigma sigma)]
+  (let [v-mu:sigma (/ (- v mu) sigma)]
     (* -0.5 (+ log-2pi
-               (Math/log variance)
-               (/ v-mu-sq variance)))))
+               (* 2 (Math/log sigma))
+               (* v-mu:sigma
+                  v-mu:sigma)))))
 
 (defn uniform
   "Returns the log-likelihood of the continuous [uniform

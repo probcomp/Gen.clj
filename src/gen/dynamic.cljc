@@ -124,7 +124,11 @@
        (empty [_] choicemap/EMPTY)
        (valAt [this k] (.invoke ^IFn this k nil))
        (valAt [this k not-found] (.invoke ^IFn this k not-found))
-       (equiv [this that] (choicemap/equiv this that))]
+       (equiv [this that] (choicemap/equiv this that))
+
+       Iterable
+       (iterator [this]
+                 (.iterator ^Iterable (choicemap/get-submaps-shallow this)))]
 
       :cljs
       [Object
@@ -277,7 +281,7 @@
         unvisited-trie (apply dissoc
                               (.-trie prev-trace)
                               (keys visited-m))
-        to-subtract (reduce-kv (fn [acc _ v] (+ acc v))
+        to-subtract (reduce-kv (fn [acc _ v] (+ acc (:score v)))
                                0.0
                                unvisited-trie)]
 

@@ -5,7 +5,6 @@
             [gen.distribution.commons-math :as dist]
             [gen.dynamic :as dynamic :refer [gen]]
             [gen.choicemap :as choicemap]
-            [gen.dynamic.choicemap :as dynamic.choicemap]
             [gen.generative-function :as gf]
             [gen.trace :as trace]
             [nextjournal.clerk :as clerk]))
@@ -300,12 +299,14 @@
   (let [data (apply concat
                     (for [p ps]
                       (->> (repeatedly #(trace/get-choices (gf/simulate gen-f [p])))
-                           (filter (fn [trace]
-                                     (= observed-fp (get trace :fp))))
-                           (take 1000)
-                           (mapv (fn [trace]
+                           (filter (fn [choices]
+                                     (= observed-fp
+                                        (choicemap/get-value choices :fp))))
+                           (take 100)
+                           (mapv (fn [choices]
                                    {:p p
-                                    :if-test (get trace :if-test)})))))]
+                                    :if-test
+                                    (choicemap/get-value choices :if-test)})))))]
     (clerk/vl {:schema "https://vega.github.io/schema/vega-lite/v5.json"
                :embed/opts {:actions false}
                :data {:values data}
@@ -440,27 +441,26 @@
 ;; choice map containing these constraints:
 ;;
 ;; ```clojure
-;; (require '[gen.choicemap :as choicemap]
-;;          '[gen.dynamic.choicemap :as dynamic.choicemap])
+;; (require '[gen.choicemap :as choicemap])
 ;; ```
 
 (def constraints
-  (dynamic.choicemap/choicemap
-   :a true
-   :c false))
+  (choicemap/choicemap
+   {:a true
+    :c false}))
 
 #_
 (choicemap/get-submaps-shallow
- (dynamic.choicemap/choicemap
-  :a true
-  :c false))
+ (choicemap/choicemap
+  {:a true
+   :c false}))
 
-;; The `gen.dynamic.choicemap/choicemap` constructor above took two elements
-;; of the form (address, value). This is equivalent to constructing an empty
-;; choice map and then populating it:
+;; The `gen.choicemap/choicemap` constructor above took a map with key-value
+;; pairs of the form (address, value). This is equivalent to constructing an
+;; empty choice map and then populating it:
 
 (def choices
-  (assoc (dynamic.choicemap/choicemap)
+  (assoc (choicemap/choicemap)
          :a true
          :c false))
 
@@ -651,46 +651,46 @@
         false-count (get counts false 0)]
     (double (/ true-count (+ true-count false-count)))))
 
-(clerk/vl {:schema "https://vega.github.io/schema/vega-lite/v5.json"
-           :embed/opts {:actions false}
-           :layer [{:data {:values (for [[n-particles as] samples]
-                                     {:n-particles n-particles
-                                      :estimate (estimate as)})}
-                    :mark "line"
-                    :encoding {:x {:field :n-particles
-                                   :type "quantitative"
-                                   :scale {:type "log"}
-                                   :axis {:title "number of particles"}}
-                               :y {:field :estimate
-                                   :type "quantitative"
-                                   :scale {:type "linear"
-                                           :domain [0.0 1.0]}
-                                   :axis {:title ["estimated" "p(a = true)"]
-                                          :orient "left"
-                                          :titleAngle 0
-                                          :titleAlign "right"}}}}
-                   {:data {:values (for [[n-particles as] samples]
-                                     {:n-particles n-particles
-                                      :estimate (estimate as)})}
-                    :mark "circle"
-                    :encoding {:x {:field :n-particles
-                                   :type "quantitative"
-                                   :scale {:type "log"}
-                                   :axis {:title "number of particles"}}
-                               :y {:field :estimate
-                                   :type "quantitative"
-                                   :scale {:type "linear"
-                                           :domain [0.0 1.0]}
-                                   :axis {:title ["estimated" "p(a = true)"]
-                                          :orient "left"
-                                          :titleAngle 0
-                                          :titleAlign "right"}}}}
-                   {:data {:values [{}]}
-                    :mark {:type "rule" :color "red"}
-                    :encoding {:y {:datum prob-a-true
-                                   :axis {:orient "right"
-                                          :format ".16"
-                                          :values [0.0 prob-a-true 1.0]}}}}]})
+#_(clerk/vl {:schema "https://vega.github.io/schema/vega-lite/v5.json"
+             :embed/opts {:actions false}
+             :layer [{:data {:values (for [[n-particles as] samples]
+                                       {:n-particles n-particles
+                                        :estimate (estimate as)})}
+                      :mark "line"
+                      :encoding {:x {:field :n-particles
+                                     :type "quantitative"
+                                     :scale {:type "log"}
+                                     :axis {:title "number of particles"}}
+                                 :y {:field :estimate
+                                     :type "quantitative"
+                                     :scale {:type "linear"
+                                             :domain [0.0 1.0]}
+                                     :axis {:title ["estimated" "p(a = true)"]
+                                            :orient "left"
+                                            :titleAngle 0
+                                            :titleAlign "right"}}}}
+                     {:data {:values (for [[n-particles as] samples]
+                                       {:n-particles n-particles
+                                        :estimate (estimate as)})}
+                      :mark "circle"
+                      :encoding {:x {:field :n-particles
+                                     :type "quantitative"
+                                     :scale {:type "log"}
+                                     :axis {:title "number of particles"}}
+                                 :y {:field :estimate
+                                     :type "quantitative"
+                                     :scale {:type "linear"
+                                             :domain [0.0 1.0]}
+                                     :axis {:title ["estimated" "p(a = true)"]
+                                            :orient "left"
+                                            :titleAngle 0
+                                            :titleAlign "right"}}}}
+                     {:data {:values [{}]}
+                      :mark {:type "rule" :color "red"}
+                      :encoding {:y {:datum prob-a-true
+                                     :axis {:orient "right"
+                                            :format ".16"
+                                            :values [0.0 prob-a-true 1.0]}}}}]})
 
 ;; ## 5. Updating a trace
 
@@ -728,9 +728,9 @@
 
 ;; Doing an update can also cause some addresses to leave the choice map
 ;; altogether. For example, if we set `:a` to `false`, then choice at address
-;; `:b` is no longer include in the choice map.
+;; `:b` is no longer included in the choice map.
 
-(def update-a-true (trace/update update-trace #gen/choicemap {:a false}))
+(def update-a-true (trace/update update-trace {:a false}))
 (trace/get-choices (:trace update-a-true))
 
 ;; The *discard* choice map that is returned by `update` contains the valus for
@@ -754,7 +754,3 @@
 ;; The new discard choice map now contains the old constraints:
 
 (:discard update-with-discard)
-
-;; This illustrates a useful notion of **reversibility** of the `update`
-;; function, which will be important when using it as a primitive in
-;; Metropolis-Hastings algorithms.

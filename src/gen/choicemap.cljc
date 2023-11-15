@@ -192,7 +192,10 @@
        (empty [_] (EmptyChoiceMap. nil))
        (valAt [_ _] nil)
        (valAt [_ _ not-found] not-found)
-       (equiv [_ o] (instance? EmptyChoiceMap o))]
+       (equiv [_ o] (instance? EmptyChoiceMap o))
+
+       Iterable
+       (iterator [_] (.iterator {}))]
 
       :cljs
       [Object
@@ -343,7 +346,10 @@
        (empty [_] EMPTY)
        (valAt [_ k] (.valAt ^Associative m k))
        (valAt [_ k not-found] (.valAt ^Associative m k not-found))
-       (equiv [this that] (equiv this that))]
+       (equiv [this that] (equiv this that))
+
+       Iterable
+       (iterator [_] (.iterator ^Iterable m))]
 
       :cljs
       [Object
@@ -505,7 +511,10 @@
        (empty [_] EMPTY)
        (valAt [_ k] (.valAt ^Associative v k))
        (valAt [_ k not-found] (.valAt ^Associative v k not-found))
-       (equiv [this that] (equiv this that))]
+       (equiv [this that] (equiv this that))
+
+       Iterable
+       (iterator [_] (.iterator ^Iterable v))]
 
       :cljs
       [Object

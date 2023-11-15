@@ -1,11 +1,11 @@
 ^{:nextjournal.clerk/visibility {:code :hide :result :hide}}
 (ns intro-to-modeling
   {:nextjournal.clerk/toc true}
-  (:require [gen.dynamic :as dynamic :refer [gen]]
-            [gen.dynamic.choicemap :refer [choicemap]]
+  (:require [gen.choicemap :as choicemap :refer [choicemap]]
             [gen.clerk.callout :as callout]
             [gen.clerk.viewer :as viewer]
             [gen.distribution.kixi :as dist]
+            [gen.dynamic :as dynamic :refer [gen]]
             [gen.generative-function :as gf]
             [gen.inference.importance :as importance]
             [gen.trace :as trace]
@@ -221,32 +221,27 @@
 ^{::clerk/visibility {:result :hide}}
 (def line-model
   (gen [xs]
-
-    ;; We begin by sampling a slope and intercept for the line.  Before we have
+    ;; We begin by sampling a slope and intercept for the line. Before we have
     ;; seen the data, we don't know the values of these parameters, so we treat
-    ;; them as random choices. The distributions they are drawn from represent our
-    ;; prior beliefs about the parameters: in this case, that neither the slope
-    ;; nor the intercept will be more than a couple points away from 0.
-
+    ;; them as random choices. The distributions they are drawn from represent
+    ;; our prior beliefs about the parameters: in this case, that neither the
+    ;; slope nor the intercept will be more than a couple points away from 0.
     (let [slope (dynamic/trace! :slope dist/normal 0 1)
           intercept (dynamic/trace! :intercept dist/normal 0 2)
 
           ;; We define a function to compute y for a given x.
-
           y (fn [x]
               (+ (* slope x)
                  intercept))]
 
       ;; Given the slope and intercept, we can sample y coordinates for each of
       ;; the x coordinates in our input vector.
-
       (doseq [[i x] (map vector (range) xs)]
         (dynamic/trace! [:y i] dist/normal (y x) 0.1))
 
-      ;; Most of the time, we don't care about the return
-      ;; value of a model, only the random choices it makes.
-      ;; It can sometimems be useful to return something
-      ;; meaningful, however; here, we return the function `y`.
+      ;; Most of the time, we don't care about the return value of a model, only
+      ;; the random choices it makes. It can sometimems be useful to return
+      ;; something meaningful, however; here, we return the function `y`.
       y)))
 
 ;; The generative function takes as an argument a vector of x-coordinates. We
@@ -303,7 +298,6 @@
 ;; (require '[gen.trace :as trace])
 ;; ```
 
-
 (trace/get-args trace)
 
 ;; The trace also contains the value of the random choices, stored in a map from
@@ -328,7 +322,9 @@
 ;; We can also read the value of a random choice directly from the trace,
 ;; without having to use `gen.trace/get-choices` first:
 
-(get trace :slope)
+;; TODO this doesn't currently work. Implement the correct methods in Trace and
+;; pass them through to the choicemap.
+#_#_#_(get trace :slope)
 
 (trace :slope)
 
@@ -351,8 +347,9 @@
   [trace & {:keys [clip x-domain y-domain] :or {clip false}}]
   (let [[xs] (trace/get-args trace) ; Pull out the xs from the trace.
         y (trace/get-retval trace) ; Pull out the return value, useful for plotting.
+        choices (trace/get-choices trace)
         ys (for [i (range (count xs))]
-             (trace [:y i]))
+             (choicemap/get-value choices [:y i]))
         data (mapv (fn [x y]
                      {:x x :y y})
                    xs
@@ -471,8 +468,9 @@ math/PI
         min-x (apply min xs)
         max-x (apply max xs)
         y (trace/get-retval trace) ; Pull out the return value, useful for plotting.
+        choices (trace/get-choices trace)
         ys (for [i (range (count xs))]
-             (get trace [:y i]))
+             (choicemap/get-value choices [:y i]))
         data (mapv (fn [x y]
                      {:x x :y y})
                    xs
@@ -584,7 +582,7 @@ math/PI
 
 ;; ```clojure
 ;; (require '[gen.inference.importance :as importance]
-;;          '[gen.dynamic.choicemap :refer [choicemap]])
+;;          '[gen.choicemap :as choicemap :refer [choicemap]])
 ;; ```
 
 (defn do-inference
@@ -690,17 +688,19 @@ math/PI
   [model trace new-xs param-addrs]
   ;; Copy parameter values from the inferred trace (`trace`) into a fresh set of
   ;; constraints.
-  (let [constraints (reduce (fn [cm param-addr]
-                              (assoc cm param-addr (get trace param-addr)))
-                            (choicemap {})
+  (let [prev-choices (trace/get-choices trace)
+        constraints (reduce (fn [cm param-addr]
+                              (assoc cm param-addr
+                                     (choicemap/get-value prev-choices param-addr)))
+                            (choicemap)
                             param-addrs)
-
         ;; Run the model with new x coordinates, and with parameters
         ;; fixed to be the inferred values.
-        {new-trace :trace} (gf/generate model [new-xs] constraints)]
+        {new-trace :trace} (gf/generate model [new-xs] constraints)
+        choices (trace/get-choices new-trace)]
 
     ;; Pull out the y-values and return them.
-    (mapv #(get new-trace [:y %])
+    (mapv #(choicemap/get-value choices [:y %])
           (range (count new-xs)))))
 
 ;; To illustrate, we call the function above given the previous trace (which
@@ -957,8 +957,8 @@ math/PI
 ;; collisions for complex models.
 
 ;; Hierarchical traces are represented using nested choice maps
-;; (`gen.dynamic.choicemap/ChoiceMap`). Hierarchical addresses can be accessed
-;; using `clojure.core` functions like `clojure.core/get-in`.
+;; (`gen.choicemap/IChoiceMap`). Hierarchical addresses can be accessed using
+;; `clojure.core` functions like `clojure.core/get-in`.
 
 (get-in bar-with-key-trace [:z :y])
 
@@ -984,6 +984,7 @@ math/PI
 
 ;; We run inference using this combined model on the `ys` data set and the
 ;; `ys-sine` data set.
+
 
 (let [amount-of-computation 10000
       ys-traces (prepeatedly 10 #(do-inference combined-model xs ys amount-of-computation))
@@ -1213,15 +1214,16 @@ math/PI
 
 (defn render-changepoint-model-trace
   [trace]
-  (let [[xs] (trace/get-args trace)
-        ys (for [i (range (count xs))]
-             (trace [:y i]))
-        node (trace/get-retval trace)
+  (let [[xs]       (trace/get-args trace)
+        choices    (trace/get-choices trace)
+        ys         (for [i (range (count xs))]
+                     (choicemap/get-value choices [:y i]))
+        node       (trace/get-retval trace)
         node-layer (node-vl-spec node)
         data-layer (scatter-spec xs ys :color "grey" :fillOpacity 0.3 :strokeOpacity 1.0)]
-    (clerk/vl {:schema "https://vega.github.io/schema/vega-lite/v5.json"
+    (clerk/vl {:schema     "https://vega.github.io/schema/vega-lite/v5.json"
                :embed/opts {:actions false}
-               :layer [node-layer data-layer]})))
+               :layer      [node-layer data-layer]})))
 
 {::clerk/visibility {:result :show}}
 
