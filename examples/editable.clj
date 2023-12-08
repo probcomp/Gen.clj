@@ -5,12 +5,11 @@
   `intro-to-modeling`, and also changed the `pmap` call in `prepeatedly` into
   `map`, since we don't have `pmap` available in the browser."
   {:nextjournal.clerk/toc true}
-  (:require [gen.choice-map]
-            [gen.dynamic :as dynamic :refer [gen]]
-            [gen.dynamic.choice-map :refer [choice-map]]
+  (:require [gen.choicemap :refer [choicemap]]
             [gen.clerk.callout :as callout]
             [gen.clerk.viewer :as viewer]
             [gen.distribution.kixi :as dist]
+            [gen.dynamic :as dynamic :refer [gen]]
             [gen.generative-function :as gf]
             [gen.inference.importance :as importance]
             [gen.trace :as trace]
@@ -586,7 +585,7 @@ math/PI
   ;; them to be inferred.
   (let [observations (reduce (fn [observations [i y]]
                                (assoc observations [:y i] y))
-                             (choice-map {})
+                             (choicemap {})
                              (map-indexed vector ys))]
     (:trace (importance/resampling model [xs] observations amount-of-computation))))
 
@@ -652,7 +651,7 @@ math/PI
 
 ;; For example:
 
-(def predicting-constraints (choice-map {:slope 0 :intercept 0}))
+(def predicting-constraints (choicemap {:slope 0 :intercept 0}))
 (def predicting-trace (:trace (gf/generate line-model [xs] predicting-constraints)))
 
 (def predict-opts
@@ -684,7 +683,7 @@ math/PI
   ;; constraints.
   (let [constraints (reduce (fn [cm param-addr]
                               (assoc cm param-addr (get trace param-addr)))
-                            (choice-map {})
+                            (choicemap {})
                             param-addrs)
 
         ;; Run the model with new x coordinates, and with parameters
@@ -944,7 +943,7 @@ math/PI
 ;; collisions for complex models.
 
 ;; Hierarchical traces are represented using nested choice maps
-;; (`gen.dynamic.choice-map/ChoiceMap`). Hierarchical addresses can be accessed
+;; (`gen.dynamic.choicemap/ChoiceMap`). Hierarchical addresses can be accessed
 ;; using `clojure.core` functions like `clojure.core/get-in`.
 
 (get-in bar-with-key-trace [:z :y])

@@ -141,25 +141,25 @@
 ;; ## Primitive generative functions
 
 (def bernoulli
-  (d/->GenerativeFn bernoulli-distribution))
+  (d/->GenerativeFn bernoulli-distribution 1))
 
 (def beta
-  (d/->GenerativeFn beta-distribution))
+  (d/->GenerativeFn beta-distribution 2))
 
 (def cauchy
-  (d/->GenerativeFn cauchy-distribution))
+  (d/->GenerativeFn cauchy-distribution 2))
 
 (def exponential
-  (d/->GenerativeFn exponential-distribution))
+  (d/->GenerativeFn exponential-distribution 1))
 
 (def uniform
-  (d/->GenerativeFn uniform-distribution))
+  (d/->GenerativeFn uniform-distribution 2))
 
 (def normal
-  (d/->GenerativeFn normal-distribution))
+  (d/->GenerativeFn normal-distribution 2))
 
 (def gamma
-  (d/->GenerativeFn gamma-distribution))
+  (d/->GenerativeFn gamma-distribution 2))
 
 (def student-t
-  (d/->GenerativeFn student-t-distribution))
+  (d/->GenerativeFn student-t-distribution 3))

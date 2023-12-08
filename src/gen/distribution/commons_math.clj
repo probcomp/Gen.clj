@@ -105,30 +105,30 @@
 ;; ## Primitive generative functions
 
 (def bernoulli
-  (d/->GenerativeFn bernoulli-distribution))
+  (d/->GenerativeFn bernoulli-distribution 1))
 
 (def beta
-  (d/->GenerativeFn beta-distribution))
+  (d/->GenerativeFn beta-distribution 2))
 
 (def gamma
-  (d/->GenerativeFn gamma-distribution))
+  (d/->GenerativeFn gamma-distribution 2))
 
 (def student-t
-  (d/->GenerativeFn student-t-distribution))
+  (d/->GenerativeFn student-t-distribution 3))
 
 (def normal
-  (d/->GenerativeFn normal-distribution))
+  (d/->GenerativeFn normal-distribution 2))
 
 (def uniform
-  (d/->GenerativeFn uniform-distribution))
+  (d/->GenerativeFn uniform-distribution 2))
 
 (def uniform-discrete
   "Sample an integer from the uniform distribution on the set `{low low+1 ...
   high-1 high}`."
-  (d/->GenerativeFn uniform-discrete-distribution))
+  (d/->GenerativeFn uniform-discrete-distribution 2))
 
 (def categorical
   "Given a sequence of probabilities probs where `(reduce + probs)` is 1, sample
   an integer `i` from the set #{1 2 ... (count probs)} with probability `(nth
   probs i)`."
-  (d/->GenerativeFn categorical-distribution))
+  (d/->GenerativeFn categorical-distribution 1))

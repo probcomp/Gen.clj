@@ -4,6 +4,7 @@
             [clojure.repl :as repl]
             [gen.distribution.commons-math :as dist]
             [gen.dynamic :as dynamic :refer [gen]]
+            [gen.choicemap :as choicemap]
             [gen.generative-function :as gf]
             [gen.trace :as trace]
             [nextjournal.clerk :as clerk]))
@@ -298,12 +299,14 @@
   (let [data (apply concat
                     (for [p ps]
                       (->> (repeatedly #(trace/get-choices (gf/simulate gen-f [p])))
-                           (filter (fn [trace]
-                                     (= observed-fp (get trace :fp))))
-                           (take 1000)
-                           (mapv (fn [trace]
+                           (filter (fn [choices]
+                                     (= observed-fp
+                                        (choicemap/get-value choices :fp))))
+                           (take 100)
+                           (mapv (fn [choices]
                                    {:p p
-                                    :if-test (get trace :if-test)})))))]
+                                    :if-test
+                                    (choicemap/get-value choices :if-test)})))))]
     (clerk/vl {:schema "https://vega.github.io/schema/vega-lite/v5.json"
                :embed/opts {:actions false}
                :data {:values data}
@@ -437,30 +440,9 @@
 ;; where `:a` is always true and `:c` is always false. We first construct a
 ;; choice map containing these constraints:
 
-(require '[gen.dynamic.choice-map :as dynamic.choice-map]
-         '[gen.choice-map :as choice-map])
-
 (def constraints
-  (dynamic.choice-map/choice-map
-   :a true
-   :c false))
-
-#_
-(choice-map/submaps
- (dynamic.choice-map/choice-map
-  :a true
-  :c false))
-
-;; The `gen.dynamic.choice-map/choice-map` constructor above took two elements
-;; of the form (address, value). This is equivalent to constructing an empty
-;; choice map and then populating it:
-
-(def choices
-  (assoc (dynamic.choice-map/choice-map)
-         :a true
-         :c false))
-
-(choice-map/submaps choices)
+  {:a true
+   :c false})
 
 ;; Then, we pass the constraints as the third argument to
 ;; `gen.generative-function/generate`, after the function itself and the
@@ -613,7 +595,7 @@
 (def samples
   (let [n-particles [1 10 100]]
     (zipmap n-particles
-            (mapv #(draw-samples % #gen/choice-map {:c false})
+            (mapv #(draw-samples % {:c false})
                   n-particles))))
 
 (clerk/vl {:schema "https://vega.github.io/schema/vega-lite/v5.json"
@@ -696,13 +678,13 @@
 
 ;; Consider the function `foo` from above. Let's obtain an initial trace:
 
-(def update-trace (:trace (gf/generate foo [0.3] #gen/choice-map {:a true :b true :c true})))
+(def update-trace (:trace (gf/generate foo [0.3] {:a true :b true :c true})))
 (trace/get-choices update-trace)
 
 ;; Now, we use the `update` function, to change the value of `:c` from `true` to
 ;; `false`:
 
-(def updated (trace/update update-trace #gen/choice-map {:c false}))
+(def updated (trace/update update-trace {:c false}))
 (trace/get-choices (:trace updated))
 
 ;; The `update` function returns the new trace, as well as a weight, which the
@@ -724,9 +706,9 @@
 
 ;; Doing an update can also cause some addresses to leave the choice map
 ;; altogether. For example, if we set `:a` to `false`, then choice at address
-;; `:b` is no longer include in the choice map.
+;; `:b` is no longer included in the choice map.
 
-(def update-a-true (trace/update update-trace #gen/choice-map {:a false}))
+(def update-a-true (trace/update update-trace {:a false}))
 (trace/get-choices (:trace update-a-true))
 
 ;; The *discard* choice map that is returned by `update` contains the valus for

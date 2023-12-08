@@ -670,7 +670,7 @@
 
 ;; ### ChoiceMap interactions
 
-(defn- equiv
+(defn ^:no-doc equiv
   "Returns true if `r` is a choicemap with equivalent submaps to `l`, false
   otherwise.
 
