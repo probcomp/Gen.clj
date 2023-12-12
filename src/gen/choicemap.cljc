@@ -139,127 +139,6 @@
      :cljs (-write *out* "#gen/choice "))
   (pprint/simple-dispatch (.-v c)))
 
-;; ## Empty
-;;
-;; The first hierarchical choice map implementation is the [[EmptyChoiceMap]].
-;; Other implementations should return this from [[get-submap]] (instead of
-;; `nil`) in the case of queries for a missing address.
-
-(declare kv->choicemap)
-
-(deftype EmptyChoiceMap [m]
-  IChoiceMap
-  (-has-value? [_] false)
-  (-get-value [_] nil)
-  (has-submap? [_ _] false)
-  (get-submap [this _] this)
-  (get-values-shallow [_] {})
-  (get-submaps-shallow [_] {})
-
-  arr/IArray
-  (to-array [_] [])
-  (-from-array [this _ _] [0 this])
-
-  #?@(:clj
-      [Object
-       (equals [_ o] (instance? EmptyChoiceMap o))
-       (toString [this] (pr-str this))
-
-       IFn
-       (invoke [_ _] nil)
-       (invoke [_ _ not-found] not-found)
-
-       IObj
-       (meta [_] m)
-       (withMeta [_ meta-m] (EmptyChoiceMap. meta-m))
-
-       IPersistentMap
-       (assocEx [_ _ _] (throw (Exception.)))
-       (assoc [_ k v] (kv->choicemap k v))
-       (without [this _] this)
-
-       Associative
-       (containsKey [_ _] false)
-       (entryAt [_ _] nil)
-       (cons [this o]
-             (if (map? o)
-               (reduce-kv assoc this o)
-               (if-let [[k v] o]
-                 (kv->choicemap k v)
-                 this)))
-       (count [_] 0)
-       (seq [_] nil)
-       (empty [_] (EmptyChoiceMap. nil))
-       (valAt [_ _] nil)
-       (valAt [_ _ not-found] not-found)
-       (equiv [_ o] (instance? EmptyChoiceMap o))
-
-       Iterable
-       (iterator [_] (.iterator {}))]
-
-      :cljs
-      [Object
-       (toString [this] (pr-str this))
-       (equiv [this other] (-equiv this other))
-
-       IPrintWithWriter
-       (-pr-writer [_ writer _]
-                   (-write writer "#gen/choicemap {}"))
-
-       IFn
-       (-invoke [_ _] nil)
-       (-invoke [_ _ not-found] not-found)
-
-       IMeta
-       (-meta [_] m)
-
-       IWithMeta
-       (-with-meta [_ meta-m] (EmptyChoiceMap. meta-m))
-
-       IEmptyableCollection
-       (-empty [_] (EmptyChoiceMap. nil))
-
-       IEquiv
-       (-equiv [_ o] (instance? EmptyChoiceMap o))
-
-       ISeqable
-       (-seq [_] nil)
-
-       ICounted
-       (-count [_] 0)
-
-       ILookup
-       (-lookup [_ _] nil)
-       (-lookup [_ _ not-found] not-found)
-
-       IAssociative
-       (-assoc [_ k v] (kv->choicemap k v))
-       (-contains-key? [_ _] false)
-
-       ICollection
-       (-conj [this entry]
-              (if (map? entry)
-                (reduce-kv assoc this entry)
-                (if-let [[k v] entry]
-                  (kv->choicemap k v)
-                  this)))
-
-       IMap
-       (-dissoc [this _] this)]))
-
-#?(:clj
-   (defmethod print-method EmptyChoiceMap
-     [_ ^java.io.Writer w]
-     (.write w "#gen/choicemap {}")))
-
-(defmethod pprint/simple-dispatch EmptyChoiceMap [_]
-  #?(:clj  (.write ^java.io.Writer *out* "#gen/choicemap {}")
-     :cljs (-write *out* "#gen/choicemap {}")))
-
-(def EMPTY
-  "Empty choicemap singleton instance."
-  (->EmptyChoiceMap nil))
-
 ;; ## Map-shaped Choice Map
 
 ;; The [[DynamicChoiceMap]] implementation is for hierarchical,
@@ -620,7 +499,16 @@
   `(choicemap ~form))
 
 ;; ## API
-;;
+
+;; ### Empty
+
+;; Other implementations should return this from [[get-submap]] (instead of
+;; `nil`) in the case of queries for a missing address.
+
+(def EMPTY
+  "Empty choicemap singleton instance."
+  (->DynamicChoiceMap {}))
+
 ;; ### Constructors
 
 (defn ^:no-doc kv->choicemap
