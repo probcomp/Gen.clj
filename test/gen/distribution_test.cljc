@@ -46,6 +46,25 @@
                          (Math/exp (dist/logpdf (->bernoulli p) (not v)))))
                 "All options sum to 1")))
 
+(defn categorical-tests [->cat]
+  (checking "map => categorical properties"
+            [p (gen-double 0 1)]
+            (let [dist (->cat {:true p :false (- 1 p)})]
+              (is (ish? (Math/log p) (dist/logpdf dist :true))
+                  "prob of `:true` matches `p`")
+
+              (is (ish? (Math/log (- 1 p)) (dist/logpdf dist :false))
+                  "prob of `:false` matches `1-p`")))
+
+  (checking "vector => categorical properties"
+            [p (gen-double 0 1)]
+            (let [dist (->cat [p (- 1 p)])]
+              (is (ish? (Math/log p) (dist/logpdf dist 0))
+                  "prob of `1` matches `p`")
+
+              (is (ish? (Math/log (- 1 p)) (dist/logpdf dist 1))
+                  "prob of `0` matches `1-p`"))))
+
 (defn bernoulli-gfi-tests [bernoulli-dist]
   (testing "bernoulli-call-no-args"
     (is (boolean? (bernoulli-dist))))
