@@ -96,11 +96,33 @@
 (defn uniform-discrete-distribution [low high]
   (UniformIntegerDistribution. (rng) low high))
 
-(defn categorical-distribution [probabilities]
+(defn- v->categorical [probabilities]
   (let [n  (count probabilities)
         ks (int-array (range n))
         vs (double-array probabilities)]
     (EnumeratedIntegerDistribution. (rng) ks vs)))
+
+(defn- m->categorical [probabilities]
+  (let [ks   (keys probabilities)
+        vs   (vals probabilities)
+        k->i (zipmap ks (range))
+        i->k (zipmap (range) ks)]
+    (-> (v->categorical vs)
+        (d/->Encoded k->i i->k))))
+
+(defn categorical-distribution
+  "Given either
+
+  - a sequence of `probabilities` that sum to 1.0
+  - a map of object => probability (whose values sum to 1.0)
+
+  returns a distribution that produces samples of an integer in the range $[0,
+  n)$ (where `n == (count probabilities)`), or of a map key (for map-shaped
+  `probabilities`)."
+  [probabilities]
+  (if (map? probabilities)
+    (m->categorical probabilities)
+    (v->categorical probabilities)))
 
 ;; ## Primitive generative functions
 

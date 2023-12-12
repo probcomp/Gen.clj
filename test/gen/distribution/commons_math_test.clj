@@ -10,6 +10,9 @@
 (deftest beta-tests
   (dt/beta-tests commons/beta-distribution))
 
+(deftest categorical-tests
+  (dt/categorical-tests commons/categorical-distribution))
+
 (deftest uniform-tests
   (dt/uniform-tests commons/uniform-distribution))
 
