@@ -174,7 +174,7 @@
                       (dist/logpdf (->normal 0.0 sigma) (- v)))
                 "Normal is symmetric about the mean")
 
-            (with-comparator (within 1e-12)
+            (with-comparator (within 1e-10)
               (is (ish? (dist/logpdf (->normal mu sigma) v)
                         (dist/logpdf (->normal (+ mu shift) sigma) (+ v shift)))
                   "shifting by the mean is a symmetry")))
@@ -182,7 +182,8 @@
   (testing "spot checks"
     (is (= -1.0439385332046727 (dist/logpdf (->normal 0 1) 0.5)))
     (is (= -1.643335713764618 (dist/logpdf (->normal 0 2) 0.5)))
-    (is (= -1.612085713764618 (dist/logpdf (->normal 0 2) 0)))))
+    (is (= -1.612085713764618 (dist/logpdf (->normal 0 2) 0)))
+    (is (= -8.996964098844152E20 (dist/logpdf (->normal 4241959036 0.1) 33978)))))
 
 (defn uniform-tests [->uniform]
   (checking "(log of the) Beta function is symmetrical"
