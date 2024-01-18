@@ -22,7 +22,7 @@
   (instance? Choice x))
 
 (defn choice
-  "Creates a new leaf chioce map with `x` as its value."
+  "Creates a new leaf choice map with `x` as its value."
   [x]
   (if (instance? Choice x)
     x

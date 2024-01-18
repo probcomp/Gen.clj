@@ -101,7 +101,7 @@
              {:p p
               :fp (f p)}))
 
-;; Suppose we wanted to see what the distribution on return values would be if
+;; Suppose we wanted to see what the distribution on return values would be if the
 ;; value of `n0` were `2.` Because we don't know what random values were sampled
 ;; during a given execution, we can't use simulations of `f` to answer this
 ;; question. We would have to modify `f` first, to return `n0`:
@@ -140,12 +140,12 @@
 ;; then these values are sufficient to answer any question using executions of
 ;; the function, because all states in the execution of the function are
 ;; deterministic given the random choices. We will call the record of all the
-;; random choies a **trace**. In order to store all the random choices in the
+;; random choices a **trace**. In order to store all the random choices in the
 ;; trace, we need to come up with a unique name or **address** for each random
 ;; choice.
 
 ;; Below, we implement the trace as a dictionary that maps addresses of random
-;; choices to their values. We use a unique Julia Symbol for each address:
+;; choices to their values. We use a unique Clojure keyword for each address:
 
 (defn f-with-trace
   [p]
@@ -189,8 +189,7 @@
                          (dist/categorical (for [i (range 1 21)]
                                              (if (= i n1)
                                                0.5
-                                               (/ 0.5 19)))))
-        _ (swap! trace assoc :fp fp)]
+                                               (/ 0.5 19)))))]
     {:trace @trace
      :fp fp}))
 
@@ -600,7 +599,7 @@
   (/ (+ p1 p2)
      (+ p1 p2 p3)))
 
-;; We can sample approximately from this disribution using our importance
+;; We can sample approximately from this distribution using our importance
 ;; sampler. As we increase the number of traces, the actual distribution
 ;; approaches the desired distribution:
 
