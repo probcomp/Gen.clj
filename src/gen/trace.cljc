@@ -1,7 +1,7 @@
 (ns gen.trace
   "Defines the [[ITrace]] abstraction and its API."
   (:refer-clojure :exclude [update])
-  (:require #_[gen.choicemap :as choicemap]
+  (:require [gen.choicemap :as choicemap]
             [gen.diff :as diff]))
 
 ;; ## ITrace
@@ -223,12 +223,10 @@
   ([trace constraints]
    (let [args        (get-args trace)
          diffs       (repeat (count args) diff/no-change)
-         ;; TODO re-enable after full dynamic conversion.
-         constraints constraints #_(choicemap/choicemap constraints)]
+         constraints (choicemap/choicemap constraints)]
      (-update trace args diffs constraints)))
   ([trace args argdiffs constraints]
-   ;; TODO re-enable after full dynamic conversion.
-   (let [constraints constraints #_(choicemap/choicemap constraints)]
+   (let [constraints (choicemap/choicemap constraints)]
      (-update trace args argdiffs constraints))))
 
 (defn trace->map

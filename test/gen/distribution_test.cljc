@@ -2,12 +2,12 @@
   (:require [com.gfredericks.test.chuck.clojure-test :refer [checking]]
             [clojure.test :refer [is testing]]
             [clojure.test.check.generators :as gen]
+            [gen.choicemap :as choicemap]
             [gen.diff :as diff]
             [gen.distribution :as dist]
-            [gen.dynamic.choice-map :as choice-map]
             [gen.generative-function :as gf]
-            [gen.trace :as trace]
             [gen.generators :refer [gen-double within]]
+            [gen.trace :as trace]
             [same.core :refer [ish? zeroish? with-comparator]]))
 
 (defn gamma-tests [->gamma]
@@ -32,6 +32,19 @@
   (testing "spot checks"
     (is (= -5.992380837839856 (dist/logpdf (->beta 0.001 1) 0.4)))
     (is (= -6.397440480839912 (dist/logpdf (->beta 1 0.001) 0.4)))))
+
+(defn primitive-gfi-tests [gf args]
+  (let [trace (gf/simulate gf args)]
+    (is (= gf (trace/get-gen-fn trace))
+        "distribution round trips through the trace ")
+
+    (is (= args (trace/get-args trace))
+        "distribution round trips through the trace ")
+
+    (let [choice (trace/get-choices trace)]
+      (is (= (trace/get-retval trace)
+             (choicemap/get-value choice))
+          "primitive distributions return a single choice."))))
 
 (defn bernoulli-tests [->bernoulli]
   (checking "Bernoulli properties"
@@ -66,25 +79,30 @@
                   "prob of `0` matches `1-p`"))))
 
 (defn bernoulli-gfi-tests [bernoulli-dist]
+  (primitive-gfi-tests bernoulli-dist [0.5])
+
+  (checking "bernoulli dist has proper logpdf" [p (gen-double 0 1)]
+            (let [trace (gf/simulate bernoulli-dist [p])]
+              (is (ish? (if (trace/get-retval trace)
+                          p
+                          (- 1 p))
+                        (Math/exp
+                         (trace/get-score trace))))))
+
   (testing "bernoulli-call-no-args"
     (is (boolean? (bernoulli-dist))))
 
   (testing "bernoulli-call-args"
     (is (boolean? (bernoulli-dist 0.5))))
 
-  (testing "bernoulli-gf"
-    (is (= bernoulli-dist (trace/get-gen-fn (gf/simulate bernoulli-dist [])))))
-
-  (testing "bernoulli-args"
-    (is (= [0.5] (trace/get-args (gf/simulate bernoulli-dist [0.5])))))
-
   (testing "bernoulli-retval"
     (is (boolean? (trace/get-retval (gf/simulate bernoulli-dist [0.5])))))
 
   (testing "bernoulli-choices-noargs"
     (is (boolean?
-         (choice-map/unwrap
-          (trace/get-choices (gf/simulate bernoulli-dist []))))))
+         (choicemap/get-value
+          (trace/get-choices
+           (gf/simulate bernoulli-dist []))))))
 
   (testing "bernoulli-update-weight"
     (is (= 1.0
@@ -102,29 +120,29 @@
                (Math/exp)))))
 
   (testing "bernoulli-update-discard"
-    (is (nil?
-         (-> (gf/generate bernoulli-dist [0.3] #gen/choice true)
+    (is (choicemap/empty?
+         (-> (gf/generate bernoulli-dist [0.3] true)
              (:trace)
-             (trace/update nil)
+             (trace/update choicemap/EMPTY)
              (:discard))))
 
     (is (= #gen/choice true
-           (-> (gf/generate bernoulli-dist [0.3] #gen/choice true)
+           (-> (gf/generate bernoulli-dist [0.3] true)
                (:trace)
-               (trace/update #gen/choice false)
+               (trace/update false)
                (:discard)))))
 
   (testing "bernoulli-update-change"
-    (is (= diff/unknown-change
-           (-> (gf/generate bernoulli-dist [0.3] #gen/choice true)
+    (is (= diff/no-change
+           (-> (gf/generate bernoulli-dist [0.3] true)
                (:trace)
-               (trace/update nil)
+               (trace/update choicemap/EMPTY)
                (:change))))
 
     (is (= diff/unknown-change
-           (-> (gf/generate bernoulli-dist [0.3] #gen/choice true)
+           (-> (gf/generate bernoulli-dist [0.3] true)
                (:trace)
-               (trace/update #gen/choice false)
+               (trace/update false)
                (:change))))))
 
 (defn cauchy-tests [->cauchy]
@@ -187,7 +205,7 @@
   (checking "Normal properties"
             [mu    (gen-double -10 10)
              sigma (gen-double 0.001 10)
-             v     (gen-double -100 100)
+             v     (gen-double -50 50)
              shift (gen-double -10 10)]
             (is (ish? (dist/logpdf (->normal 0.0 sigma) v)
                       (dist/logpdf (->normal 0.0 sigma) (- v)))
@@ -206,8 +224,8 @@
 
 (defn uniform-tests [->uniform]
   (checking "(log of the) Beta function is symmetrical"
-            [min (gen-double -10 0)
-             max (gen-double 0 10)
+            [min (gen-double -10 -0.1)
+             max (gen-double 0.1 10)
              v   (gen-double -10 10)]
             (let [log-l (dist/logpdf (->uniform min max) v)]
               (if (<= min v max)

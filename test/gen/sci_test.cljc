@@ -13,9 +13,8 @@
 (deftest sci-tests
   (testing "Check that we can evaluate a model inside SCI."
     (eval
-     '(do (require '[gen.distribution.kixi :as dist]
+     '(do (require '[gen.distribution.kixi :as kixi]
                    '[gen.dynamic :as dynamic :refer [gen]]
-                   '[gen.dynamic.trace :as dt]
                    '[gen.generative-function :as gf]
                    '[gen.trace :as trace])
           (def line-model
@@ -26,8 +25,8 @@
               ;; prior beliefs about the parameters: in this case, that neither the slope
               ;; nor the intercept will be more than a couple points away from 0.
 
-              (let [slope     (dynamic/trace! :slope dist/normal 0 1)
-                    intercept (dynamic/trace! :intercept dist/normal 0 2)
+              (let [slope     (dynamic/trace! :slope kixi/normal 0 1)
+                    intercept (dynamic/trace! :intercept kixi/normal 0 2)
 
                     ;; We define a function to compute y for a given x.
 
@@ -39,7 +38,7 @@
                 ;; the x coordinates in our input vector.
 
                 (doseq [[i x] (map vector (range) xs)]
-                  (dynamic/trace! [:y i] dist/normal (y x) 0.1))
+                  (dynamic/trace! [:y i] kixi/normal (y x) 0.1))
 
                 ;; Most of the time, we don't care about the return
                 ;; value of a model, only the random choices it makes.

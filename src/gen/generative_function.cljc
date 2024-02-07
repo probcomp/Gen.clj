@@ -109,8 +109,7 @@
      {:trace trace
       :weight 0.0}))
   ([gf args constraints]
-   ;; TODO re-enable after full dynamic conversion.
-   (let [constraints constraints #_(choicemap/choicemap constraints)]
+   (let [constraints (choicemap/choicemap constraints)]
      (-generate gf args constraints))))
 
 (defn ^:no-doc default-propose

@@ -55,10 +55,10 @@
 ;; ## Primitive generative functions
 
 (def bernoulli
-  (d/->GenerativeFn bernoulli-distribution))
+  (d/->GenerativeFn bernoulli-distribution 1))
 
 (def uniform
-  (d/->GenerativeFn uniform-distribution))
+  (d/->GenerativeFn uniform-distribution 2))
 
 (def normal
-  (d/->GenerativeFn normal-distribution))
+  (d/->GenerativeFn normal-distribution 2))
