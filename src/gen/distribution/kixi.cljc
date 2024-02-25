@@ -4,6 +4,7 @@
             [kixi.stats.distribution :as k])
   #?(:clj
      (:import (kixi.stats.distribution Bernoulli Cauchy
+                                       Binomial
                                        Exponential Beta
                                        Gamma Normal Uniform T))))
 
@@ -21,6 +22,14 @@
   d/LogPDF
   (logpdf [this v]
     (ll/bernoulli (.-p this) v)))
+
+(extend-type #?(:clj Binomial :cljs k/Binomial)
+  d/Sample
+  (sample [this] (k/draw this))
+
+  d/LogPDF
+  (logpdf [this v]
+    (ll/binomial (.-n this) (.-p this) v)))
 
 (extend-type #?(:clj Beta :cljs k/Beta)
   d/Sample
@@ -106,6 +115,10 @@
   ([] (bernoulli-distribution 0.5))
   ([p] (k/bernoulli {:p p})))
 
+(defn binomial-distribution
+  ([n p]
+   (k/binomial {:n n :p p})))
+
 (defn beta-distribution
   ([] (beta-distribution 1.0 1.0))
   ([alpha beta]
@@ -142,6 +155,9 @@
 
 (def bernoulli
   (d/->GenerativeFn bernoulli-distribution 1))
+
+(def binomial
+  (d/->GenerativeFn binomial-distribution 2))
 
 (def beta
   (d/->GenerativeFn beta-distribution 2))

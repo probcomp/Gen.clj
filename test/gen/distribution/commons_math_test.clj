@@ -7,6 +7,9 @@
   (dt/bernoulli-tests commons/bernoulli-distribution)
   (dt/bernoulli-gfi-tests commons/bernoulli))
 
+(deftest binomial-tests
+  (dt/binomial-tests commons/binomial-distribution))
+
 (deftest beta-tests
   (dt/beta-tests commons/beta-distribution))
 

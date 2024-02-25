@@ -68,6 +68,10 @@
                      0 false
                      1 true)))))
 
+(defn binomial-distribution
+  ([n ^double p]
+   (BinomialDistribution. (rng) n p)))
+
 (defn beta-distribution
   ([] (beta-distribution 1.0 1.0))
   ([^double alpha ^double beta]
@@ -128,6 +132,9 @@
 
 (def bernoulli
   (d/->GenerativeFn bernoulli-distribution 1))
+
+(def binomial
+  (d/->GenerativeFn binomial-distribution 2))
 
 (def beta
   (d/->GenerativeFn beta-distribution 2))

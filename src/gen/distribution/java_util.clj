@@ -25,6 +25,15 @@
   (d/logpdf [_ v]
     (ll/bernoulli p v)))
 
+(defrecord Binomial [^SplittableRandom rnd n p]
+  d/Sample
+  (sample [_]
+    (.nextBinomial rnd n p))
+
+  d/LogPDF
+  (d/logpdf [_ v]
+    (ll/binomial n p v)))
+
 (defrecord Gaussian [^SplittableRandom rnd mu sigma]
   d/Sample
   (sample [_]
@@ -43,6 +52,10 @@
   ([] (bernoulli-distribution 0.5))
   ([p] (->Bernoulli (rng) p)))
 
+(defn binomial-distribution
+  [n p]
+  (->Binomial (rng) n p))
+
 (defn uniform-distribution
   ([] (uniform-distribution 0.0 1.0))
   ([lo hi] (->Uniform (rng) lo hi)))
@@ -56,6 +69,9 @@
 
 (def bernoulli
   (d/->GenerativeFn bernoulli-distribution 1))
+
+(def binomial
+  (d/->GenerativeFn binomial-distribution 2))
 
 (def uniform
   (d/->GenerativeFn uniform-distribution 2))

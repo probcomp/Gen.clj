@@ -7,6 +7,9 @@
   (dt/bernoulli-tests java-util/bernoulli-distribution)
   (dt/bernoulli-gfi-tests java-util/bernoulli))
 
+(deftest binomial-tests
+  (dt/binomial-tests java-util/binomial-distribution))
+
 (deftest uniform-tests
   (dt/uniform-tests java-util/uniform-distribution))
 
