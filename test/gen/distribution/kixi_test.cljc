@@ -8,7 +8,8 @@
   (dt/bernoulli-gfi-tests kixi/bernoulli))
 
 (deftest binomial-tests
-  (dt/binomial-tests kixi/binomial-distribution))
+  (dt/binomial-tests kixi/binomial-distribution)
+  (dt/binomial-gf-tests kixi/binomial))
 
 (deftest beta-tests
   (dt/beta-tests kixi/beta-distribution))

@@ -97,23 +97,6 @@
   {:pre [(<= 0 p 1)]}
   (Math/log (if v p (- 1.0 p))))
 
-(defn log-fact
-  "Returns the natural logarithm of `x` factorial."
-  [x]
-  {:pre [(>= x 0)]}
-  (log-gamma-fn (inc x)))
-
-(defn log-bico
-  "Returns the natural logorithm of the binomial coefficient, `n` choose `k`."
-  [n k]
-  {:pre [(integer? n)
-         (integer? k)
-         (>= k 0)
-         (>= n k)]}
-  (if (or (zero? k) (= k n))
-    0  ;; log 1
-    (- (log-fact n) (log-fact k) (log-fact (- n k)))))
-
 (defn binomial
   "Returns the log-likelihood of a [Binomial
   distribution](https://en.wikipedia.org/wiki/Binomial_distribution)
@@ -125,17 +108,24 @@
          (>= v 0)
          (>= n v)
          (<= 0 p 1)]}
-  (cond
-    (= p 0) (if (= v 0)
-              0.0     ;; log(1)
-              ##-Inf) ;; log(0)
-    (= p 1) (if (= v n)
-              0.0     ;; log(1)
-              ##-Inf) ;; log(0)
-    :else
-    (+ (log-bico n v)
-       (* v (Math/log p))
-       (* (- n v) (Math/log (- 1 p))))))
+  (letfn [(log-fact
+            [x]
+            (log-gamma-fn (inc x)))
+          (log-bico
+            [n k]
+            (if (or (zero? k) (= k n))
+              0  ;; log(1)
+              (- (log-fact n) (log-fact k) (log-fact (- n k)))))]
+    (case p
+      0 (if (= v 0)
+          0.0     ;; log(1)
+          ##-Inf) ;; log(0))
+      1 (if (= v n)
+          0.0     ;; log(1)
+          ##-Inf) ;; log(0)
+      (+ (log-bico n v)
+         (* v (Math/log p))
+         (* (- n v) (Math/log (- 1 p)))))))
 
 (defn cauchy
   "Returns the log-likelihood of a [Cauchy

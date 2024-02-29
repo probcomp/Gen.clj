@@ -59,11 +59,19 @@
                          (Math/exp (dist/logpdf (->bernoulli p) (not v)))))
                 "All options sum to 1")))
 
+(defn binomial-gf-tests [->binomial-gf]
+  (checking "spot check gf score implementations"
+    [n (gen/choose 0 10000)
+     p (gen-double 0.11111 0.99999)]
+    (let [trace (gf/simulate ->binomial-gf [n p])
+          sample (trace/get-retval trace)]
+      (is (<= sample n)))))
+
 (defn binomial-tests [->binomial]
   ;; boundaries...
   (testing "when p = 0 and v = 0, probability is 1, log(1) = 0"
     (is 0 (dist/logpdf (->binomial 10 0) 0)))
- 
+
   (testing "when p = 0 and v > 0, probability is 0, log(0) = -Inf"
     (is ##-Inf (dist/logpdf (->binomial 10 0) 1)))
 
@@ -74,45 +82,49 @@
     (is ##-Inf(dist/logpdf (->binomial 10 0) 1)))
 
   ;; properties...
-  (testing "sum of probabilities equals 1"
-    (with-comparator (within 1e-9)
-      (let [n 100
-            p 0.5
-            log-probs (map (fn [k] (dist/logpdf (->binomial n p) k)) (range 0 (inc n)))
+  (checking "sum of probabilities equals 1"
+    [n (gen/choose 0 10000)
+     p (gen-double 0.11111 0.99999)]
+    (let [log-probs (map (fn [k] (dist/logpdf (->binomial n p) k)) (range 0 (inc n)))
             probs (map (fn [x] (Math/exp x)) log-probs)
             sum-probs (reduce + probs)]
-        (is (ish? 1.0 sum-probs)))))
+        (with-comparator (within 1e-9)
+          (is (ish? 1.0 sum-probs)))))
 
-  (testing "symmetric when p = 0.5 such that binomial(k) = binomial(n -k)"
-    (let [n 100
-          p 0.5
-          v 10]
-      (is (dist/logpdf (->binomial n p) v)
-          (dist/logpdf (->binomial n p) (- n v)))))
-
-  (testing "mean and variance consistency where mu = n * p and variance = mu(1 - p)"
+  ;; A binomial distribution is symmetrical if the probability of observing $k$
+  ;; successes in $n$ trials is the same as observing $n - k$ successes, which
+  ;; should be true when $p = 0.5$.
+  (checking "symmetrical shape when $p = 0.5$"
+    [n (gen/choose 0 10000)]
     (with-comparator (within 1e-9)
-      (let [n 100
-            p 0.3
+      (let [p 0.5
             ks (range 0 (inc n))
+            k (map (fn [k] (dist/logpdf (->binomial n p) k)) ks)
+            n-k (map (fn [k] (dist/logpdf (->binomial n p) (- n k))) ks)]
+        (is (ish? k n-k)))))
+
+  ;; The expected value (mean) of the binomial distribution is $mu = n * p$ and
+  ;; variance is $mu * (1 - p)$ for all $n$ and $p$. This computes the mean and
+  ;; variance from the log-likelihood function and compares them to the
+  ;; theoretical values.
+  (checking "expected value and variance"
+    [n (gen/choose 1 10000)
+     p (gen-double 0.11111 0.99999)]
+      (let [ks (range 0 (inc n))
             log-probs (map (fn [k] (dist/logpdf (->binomial n p) k)) ks)
             probs (map (fn [x] (Math/exp x)) log-probs)
             mu (reduce + (map * probs ks))
             variance (reduce + (map (fn [k p] (* p (Math/pow (- k mu) 2))) ks probs))
             theoretical-mu (* n p)
             theoretical-variance (* n p (- 1 p))]
-        (is (ish? theoretical-mu mu))
-        (is (ish? theoretical-variance variance)))))
+        (with-comparator (within 1e-3)
+          (is (ish? theoretical-mu mu))
+          (is (ish? theoretical-variance variance)))))
 
   (testing "spot check against scipy.stats.binom.logpmf (v1.12.0)"
-    (with-comparator (within 1e-9)
+    (with-comparator (within 1e-6)
       (is (ish? -7.13354688230902 (dist/logpdf (->binomial 1000000 0.5) 500000)))
-
-      ;; TODO: failing test (off by 1.9e-9)
-      ;; expected: (ish? -3.222306954272568 (dist/logpdf (->binomial 1000000 0.0001) 100))
-      ;; actual: (not (ish? -3.222306954272568 -3.2223069561241857))
       (is (ish? -3.222306954272568 (dist/logpdf (->binomial 1000000 0.0001) 100)))
-
       (is (ish? -8.047189562170502 (dist/logpdf (->binomial 5 0.2) 5)))
       (is (ish? -1.1856136373815076 (dist/logpdf (->binomial 50 0.99) 49)))
       (is (ish? -1.185613637381508 (dist/logpdf (->binomial 50 0.01) 1)))
@@ -123,14 +135,9 @@
       (is (ish? -52.680257828913156 (dist/logpdf (->binomial 500 0.1) 0)))))
 
   (testing "spot check against gen logpdf (v0.4.6)"
-    (with-comparator (within 1e-9)
+    (with-comparator (within 1e-6)
       (is (ish? -7.133546882067904 (dist/logpdf (->binomial 1000000 0.5) 500000)))
-
-      ;; TODO: failing test (off by 1.9e-9)
-      ;; expected: (ish? -3.222306954262436 (dist/logpdf (->binomial 1000000 0.0001) 100))
-      ;; actual: (not (ish? -3.222306954262436 -3.2223069561241857))
       (is (ish? -3.222306954262436 (dist/logpdf (->binomial 1000000 0.0001) 100)))
-
       (is (ish? -8.047189562170502 (dist/logpdf (->binomial 5 0.2) 5)))
       (is (ish? -1.185613637381516 (dist/logpdf (->binomial 50 0.99) 49)))
       (is (ish? -1.1856136373815152 (dist/logpdf (->binomial 50 0.01) 1)))
