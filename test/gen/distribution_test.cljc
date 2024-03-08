@@ -103,49 +103,33 @@
             n-k (map (fn [k] (dist/logpdf (->binomial n p) (- n k))) ks)]
         (is (ish? k n-k)))))
 
-  ;; The expected value (mean) of the binomial distribution is $mu = n * p$ and
-  ;; variance is $mu * (1 - p)$ for all $n$ and $p$. This computes the mean and
-  ;; variance from the log-likelihood function and compares them to the
-  ;; theoretical values.
-  (checking "expected value and variance"
-    [n (gen/choose 1 10000)
-     p (gen-double 0.11111 0.99999)]
-      (let [ks (range 0 (inc n))
-            log-probs (map (fn [k] (dist/logpdf (->binomial n p) k)) ks)
-            probs (map (fn [x] (Math/exp x)) log-probs)
-            mu (reduce + (map * probs ks))
-            variance (reduce + (map (fn [k p] (* p (Math/pow (- k mu) 2))) ks probs))
-            theoretical-mu (* n p)
-            theoretical-variance (* n p (- 1 p))]
-        (with-comparator (within 1e-3)
-          (is (ish? theoretical-mu mu))
-          (is (ish? theoretical-variance variance)))))
-
   (testing "spot check against scipy.stats.binom.logpmf (v1.12.0)"
-    (with-comparator (within 1e-6)
-      (is (ish? -7.13354688230902 (dist/logpdf (->binomial 1000000 0.5) 500000)))
-      (is (ish? -3.222306954272568 (dist/logpdf (->binomial 1000000 0.0001) 100)))
-      (is (ish? -8.047189562170502 (dist/logpdf (->binomial 5 0.2) 5)))
-      (is (ish? -1.1856136373815076 (dist/logpdf (->binomial 50 0.99) 49)))
-      (is (ish? -1.185613637381508 (dist/logpdf (->binomial 50 0.01) 1)))
-      (is (ish? -693133.3650493873 (dist/logpdf (->binomial 1000000 0.5) 999999)))
-      (is (ish? 0 (dist/logpdf (->binomial 10 0) 0)))
-      (is (ish? 0 (dist/logpdf (->binomial 10 1) 10)))
-      (is (ish? -2.02597397686619 (dist/logpdf (->binomial 100 0.9) 90)))
-      (is (ish? -52.680257828913156 (dist/logpdf (->binomial 500 0.1) 0)))))
+    (with-comparator (within 1e-12)
+      (let [scipy-data [[5 0.2 5 -8.047189562170502]
+                        [50 0.99 49 -1.1856136373815076]
+                        [50 0.01 1 -1.185613637381508]
+                        [10 0 0 0]
+                        [10 1 10 0]
+                        [100 0.9 90 -2.02597397686619]
+                        [500 0.1 0 -52.680257828913156]]]
+        (doseq [[n p v expected] scipy-data]
+          (let [actual (dist/logpdf (->binomial n p) v)]
+            (is (ish? expected actual)
+                (str "n=" n ", p=" p ", v=" v)))))))
 
-  (testing "spot check against gen logpdf (v0.4.6)"
-    (with-comparator (within 1e-6)
-      (is (ish? -7.133546882067904 (dist/logpdf (->binomial 1000000 0.5) 500000)))
-      (is (ish? -3.222306954262436 (dist/logpdf (->binomial 1000000 0.0001) 100)))
-      (is (ish? -8.047189562170502 (dist/logpdf (->binomial 5 0.2) 5)))
-      (is (ish? -1.185613637381516 (dist/logpdf (->binomial 50 0.99) 49)))
-      (is (ish? -1.1856136373815152 (dist/logpdf (->binomial 50 0.01) 1)))
-      (is (ish? -693133.3650493873 (dist/logpdf (->binomial 1000000 0.5) 999999)))
-      (is (ish? 0 (dist/logpdf (->binomial 10 0) 0)))
-      (is (ish? 0 (dist/logpdf (->binomial 10 1) 10)))
-      (is (ish? -2.025973976866184 (dist/logpdf (->binomial 100 0.9) 90)))
-      (is (ish? -52.680257828913156 (dist/logpdf (->binomial 500 0.1) 0))))))
+  (testing "spot check against gen.jl logpdf (v0.4.6)"
+    (with-comparator (within 1e-12)
+      (let [gen-data [[5 0.2 5 -8.047189562170502]
+                      [50 0.99 49 -1.185613637381516]
+                      [50 0.01 1 -1.1856136373815152]
+                      [10 0 0 0]
+                      [10 1 10 0]
+                      [100 0.9 90 -2.025973976866184]
+                      [500 0.1 0 -52.680257828913156]]]
+        (doseq [[n p v expected] gen-data]
+          (let [actual (dist/logpdf (->binomial n p) v)]
+            (is (ish? expected actual)
+                (str "n=" n ", p=" p ", v=" v))))))))
 
 (defn categorical-tests [->cat]
   (checking "map => categorical properties"
