@@ -59,6 +59,78 @@
                          (Math/exp (dist/logpdf (->bernoulli p) (not v)))))
                 "All options sum to 1")))
 
+(defn binomial-gf-tests [->binomial-gf]
+  (checking "spot check gf score implementations"
+    [n (gen/choose 0 10000)
+     p (gen-double 0.11111 0.99999)]
+    (let [trace (gf/simulate ->binomial-gf [n p])
+          sample (trace/get-retval trace)]
+      (is (<= sample n)))))
+
+(defn binomial-tests [->binomial]
+  ;; boundaries...
+  (testing "when p = 0 and v = 0, probability is 1, log(1) = 0"
+    (is 0 (dist/logpdf (->binomial 10 0) 0)))
+
+  (testing "when p = 0 and v > 0, probability is 0, log(0) = -Inf"
+    (is ##-Inf (dist/logpdf (->binomial 10 0) 1)))
+
+  (testing "when p = 1 and v = n, probability is 1, log(1) = 0"
+    (is 0 (dist/logpdf (->binomial 10 1) 10)))
+
+  (testing "when p = 1 and v < n, probability is 0, log(0) = -Inf"
+    (is ##-Inf(dist/logpdf (->binomial 10 0) 1)))
+
+  ;; properties...
+  (checking "sum of probabilities equals 1"
+    [n (gen/choose 0 10000)
+     p (gen-double 0.11111 0.99999)]
+    (let [log-probs (map (fn [k] (dist/logpdf (->binomial n p) k)) (range 0 (inc n)))
+            probs (map (fn [x] (Math/exp x)) log-probs)
+            sum-probs (reduce + probs)]
+        (with-comparator (within 1e-9)
+          (is (ish? 1.0 sum-probs)))))
+
+  ;; A binomial distribution is symmetrical if the probability of observing $k$
+  ;; successes in $n$ trials is the same as observing $n - k$ successes, which
+  ;; should be true when $p = 0.5$.
+  (checking "symmetrical shape when $p = 0.5$"
+    [n (gen/choose 0 10000)]
+    (with-comparator (within 1e-9)
+      (let [p 0.5
+            ks (range 0 (inc n))
+            k (map (fn [k] (dist/logpdf (->binomial n p) k)) ks)
+            n-k (map (fn [k] (dist/logpdf (->binomial n p) (- n k))) ks)]
+        (is (ish? k n-k)))))
+
+  (testing "spot check against scipy.stats.binom.logpmf (v1.12.0)"
+    (with-comparator (within 1e-12)
+      (let [scipy-data [[5 0.2 5 -8.047189562170502]
+                        [50 0.99 49 -1.1856136373815076]
+                        [50 0.01 1 -1.185613637381508]
+                        [10 0 0 0]
+                        [10 1 10 0]
+                        [100 0.9 90 -2.02597397686619]
+                        [500 0.1 0 -52.680257828913156]]]
+        (doseq [[n p v expected] scipy-data]
+          (let [actual (dist/logpdf (->binomial n p) v)]
+            (is (ish? expected actual)
+                (str "n=" n ", p=" p ", v=" v)))))))
+
+  (testing "spot check against gen.jl logpdf (v0.4.6)"
+    (with-comparator (within 1e-12)
+      (let [gen-data [[5 0.2 5 -8.047189562170502]
+                      [50 0.99 49 -1.185613637381516]
+                      [50 0.01 1 -1.1856136373815152]
+                      [10 0 0 0]
+                      [10 1 10 0]
+                      [100 0.9 90 -2.025973976866184]
+                      [500 0.1 0 -52.680257828913156]]]
+        (doseq [[n p v expected] gen-data]
+          (let [actual (dist/logpdf (->binomial n p) v)]
+            (is (ish? expected actual)
+                (str "n=" n ", p=" p ", v=" v))))))))
+
 (defn categorical-tests [->cat]
   (checking "map => categorical properties"
             [p (gen-double 0 1)]

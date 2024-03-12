@@ -46,6 +46,9 @@
 (deftest bernoulli-tests
   (dt/bernoulli-tests (->logpdf ll/bernoulli)))
 
+(deftest binomial-tests
+  (dt/binomial-tests (->logpdf ll/binomial)))
+
 (deftest cauchy-tests
   (dt/cauchy-tests (->logpdf ll/cauchy)))
 

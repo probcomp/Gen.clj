@@ -1,9 +1,6 @@
 (ns gen.distribution.math.log-likelihood
-  "Log-likelihood implementations for various primitive distributions.")
-
-;; ## Helpful constants
-;;
-;; These come in handy in the implementations below and are worth caching.
+  "Log-likelihood implementations for various primitive distributions."
+  (:require [kixi.stats.math :as k]))
 
 (def ^:no-doc log-pi
   (Math/log Math/PI))
@@ -14,39 +11,11 @@
 (def ^:no-doc sqrt-2pi
   (Math/sqrt (* 2 Math/PI)))
 
-;; ## Log-likelihood implementations
-
-(def ^:no-doc gamma-coefficients
-  "Coefficients for the Lanczos approximation to the natural log of the Gamma
-  function described in [section 6.1 of Numerical
-  Recipes](http://phys.uri.edu/nigh/NumRec/bookfpdf/f6-1.pdf)."
-  [76.18009172947146
-   -86.50532032941677
-   24.01409824083091
-   -1.231739572450155
-   0.1208650973866179e-2
-   -0.5395239384953e-5])
-
 (defn ^:no-doc log-gamma-fn
   "Returns the natural log of the value of the [Gamma
-  function](https://en.wikipedia.org/wiki/Gamma_function) evaluated at `x`
-
-  This function implements the Lanczos approximation described in [section 6.1
-  of Numerical Recipes](http://phys.uri.edu/nigh/NumRec/bookfpdf/f6-1.pdf)."
+  function](https://en.wikipedia.org/wiki/Gamma_function) evaluated at `x`"
   [x]
-  (let [tmp (+ x 5.5)
-        tmp (- (* (+ x 0.5) (Math/log tmp)) tmp)
-        n   (dec (count gamma-coefficients))
-        ser (loop [i   0
-                   x+1 (inc x)
-                   acc 1.000000000190015]
-              (if (> i n)
-                acc
-                (let [coef (nth gamma-coefficients i nil)]
-                  (recur (inc i)
-                         (inc x+1)
-                         (+ acc (/ coef x+1))))))]
-    (+ tmp (Math/log (* sqrt-2pi (/ ser x))))))
+  (k/log-gamma x))
 
 (defn gamma
   "Returns the log-likelihood of the [Gamma
@@ -96,6 +65,36 @@
   [p v]
   {:pre [(<= 0 p 1)]}
   (Math/log (if v p (- 1.0 p))))
+
+(defn binomial
+  "Returns the log-likelihood of a [Binomial
+  distribution](https://en.wikipedia.org/wiki/Binomial_distribution)
+  parameterized by `n` (number of trials) and `p` (probability of success in
+  each trial) at the value `v` (number of successes)."
+  [n p v]
+  {:pre [(integer? n)
+         (integer? v)
+         (>= v 0)
+         (>= n v)
+         (<= 0 p 1)]}
+  (letfn [(log-fact
+            [x]
+            (log-gamma-fn (inc x)))
+          (log-bico
+            [n k]
+            (if (or (zero? k) (= k n))
+              0  ;; log(1)
+              (- (log-fact n) (log-fact k) (log-fact (- n k)))))]
+    (case p
+      0 (if (= v 0)
+          0.0     ;; log(1)
+          ##-Inf) ;; log(0))
+      1 (if (= v n)
+          0.0     ;; log(1)
+          ##-Inf) ;; log(0)
+      (+ (log-bico n v)
+         (* v (Math/log p))
+         (* (- n v) (Math/log (- 1 p)))))))
 
 (defn cauchy
   "Returns the log-likelihood of a [Cauchy
